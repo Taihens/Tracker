@@ -1,0 +1,19 @@
+{
+  "name": "Anathazerïn — Tracker COF",
+  "short_name": "Anathazerïn",
+  "description": "Tracker de combat Chroniques Oubliées Fantasy",
+  "start_url": "/Tracker-anathazerine/",
+  "scope": "/Tracker-anathazerine/",
+  "display": "standalone",
+  "background_color": "#0b0905",
+  "theme_color": "#0b0905",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
