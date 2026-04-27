@@ -658,7 +658,7 @@ tr:hover td{background:rgba(200,147,64,.03)}
       <button class="btn-action btn-fin-combat" onclick="endCombat()">⚔ Fin de Combat</button>
       <button class="btn-action btn-recup" onclick="pointRecup()">✦ Point de Récup.</button>
       <button class="btn-action btn-repos" onclick="reposComplet()">☽ Repos Complet</button>
-      <span id="lvlup-notif" style="display:none;cursor:pointer" onclick="checkPendingLvlUps()">
+      <span id="lvlup-notif" style="display:none;cursor:pointer" onclick="if(appMode==='mj')renderPendingLvlUps()">
         <button class="btn-action" style="background:rgba(200,147,64,.3);border-color:var(--gold);color:var(--gold3);animation:pulse 1.5s infinite">↑ Demande Lvl Up !</button>
       </span>
     </div>
@@ -2917,18 +2917,18 @@ function closeCapFull(){document.getElementById('capfull-overlay').style.display
 let pendingLvlUps={};
 function closeLvlUpPending(){document.getElementById('lvlup-pending-overlay').style.display='none';}
 function checkPendingLvlUps(){
-  try{const p=JSON.parse(localStorage.getItem('anathazer_pending_lvlup'));if(p)pendingLvlUps={...p};}catch(e){}
+  // Read from Firebase listener (already in pendingLvlUps) + localStorage fallback
+  try{const p=JSON.parse(localStorage.getItem('anathazer_pending_lvlup'));if(p&&Object.keys(pendingLvlUps).length===0)pendingLvlUps={...p};}catch(e){}
   const nb=Object.keys(pendingLvlUps).length;
+  // Badge visible seulement côté MJ
   const notif=document.getElementById('lvlup-notif');
-  if(notif) notif.style.display=nb>0&&appMode==='mj'?'inline-flex':'none';
+  if(notif) notif.style.display=(nb>0&&appMode==='mj')?'inline-flex':'none';
+  // Fermer le popup si plus rien en attente
   if(nb===0){
-    // Close popup if open and no more pending
     const overlay=document.getElementById('lvlup-pending-overlay');
     if(overlay&&overlay.style.display==='flex') closeLvlUpPending();
-    return;
   }
-  // Only show popup if MJ explicitly chose the mode (not on initial load)
-  if(modeExplicitlySet&&appMode==='mj') renderPendingLvlUps();
+  // NE PAS ouvrir le popup automatiquement — seulement via clic sur le badge
 }
 function renderPendingLvlUps(){
   const pending=Object.values(pendingLvlUps);
@@ -3494,7 +3494,43 @@ setInterval(()=>{if(appMode==='mj')checkPendingLvlUps();},5000);
 
 // ── PWA Service Worker ──
 if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('sw.js').catch(()=>{});
+  navigator.serviceWorker.register('sw.js').then(reg=>{
+    // Detect new version available
+    reg.addEventListener('updatefound',()=>{
+      const newWorker=reg.installing;
+      newWorker.addEventListener('statechange',()=>{
+        if(newWorker.state==='installed'&&navigator.serviceWorker.controller){
+          // New version ready — show update banner
+          showUpdateBanner(newWorker);
+        }
+      });
+    });
+    // Check for updates every 60s when app is open
+    setInterval(()=>reg.update(),60000);
+  }).catch(()=>{});
+
+  // Handle controller change (after update applied)
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{
+    window.location.reload();
+  });
+}
+
+function showUpdateBanner(newWorker){
+  const existing=document.getElementById('update-banner');
+  if(existing)return;
+  const banner=document.createElement('div');
+  banner.id='update-banner';
+  banner.style.cssText='position:fixed;bottom:60px;left:50%;transform:translateX(-50%);background:var(--bg2);border:2px solid var(--gold);border-radius:4px;padding:12px 20px;z-index:1000;display:flex;align-items:center;gap:12px;box-shadow:0 4px 20px rgba(0,0,0,.6);font-family:Cinzel,serif;font-size:10px;letter-spacing:.08em;color:var(--gold);cursor:pointer;white-space:nowrap';
+  banner.innerHTML='⬆ Mise à jour disponible <button style="background:var(--gold);color:var(--bg);border:none;padding:4px 10px;border-radius:2px;font-family:Cinzel,serif;font-size:9px;cursor:pointer;font-weight:600" onclick="applyUpdate()">Mettre à jour</button>';
+  document.body.appendChild(banner);
+  window._pendingWorker=newWorker;
+}
+
+function applyUpdate(){
+  if(window._pendingWorker){
+    window._pendingWorker.postMessage({type:'SKIP_WAITING'});
+  }
+  document.getElementById('update-banner')?.remove();
 }
 </script>
 </body>
