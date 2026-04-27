@@ -751,7 +751,7 @@ tr:hover td{background:rgba(200,147,64,.03)}
   <div style="max-width:700px;margin:0 auto;padding:14px">
     <div class="ptitle">✉ Messages Privés</div>
     <!-- MJ: sélecteur destinataire -->
-    <div id="msg-dest-row" style="display:none;margin-bottom:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+    <div id="msg-dest-row" style="display:none;margin-bottom:10px;gap:8px;align-items:center;flex-wrap:wrap">
       <span style="font-family:'Cinzel',serif;font-size:9px;color:var(--txt2);letter-spacing:.08em">ENVOYER À :</span>
       <select id="msg-dest" style="background:var(--bg3);border:1px solid var(--bdr);color:var(--wht);font-family:'Crimson Text',serif;font-size:13px;padding:4px 8px;border-radius:2px"></select>
     </div>
@@ -2000,12 +2000,23 @@ async function sendMessage(){
   const input=document.getElementById('msg-input');
   const text=input.value.trim();if(!text)return;
   const destSel=document.getElementById('msg-dest');
-  const charId=appMode==='mj'?parseInt(destSel?.value||state.chars[0]?.id):selectedPlayerChar;
-  if(!charId){toast('Sélectionne un personnage','t-w');return;}
+  const charId=appMode==='mj'
+    ?parseInt(destSel?.value||state.chars[0]?.id)
+    :selectedPlayerChar;
+  if(!charId){toast('Aucun personnage sélectionné','t-w');return;}
   const msg={text,from:appMode==='mj'?'mj':`char_${charId}`,ts:Date.now(),readAt:null};
   input.value='';
+  // Afficher optimistement avant la confirmation Firebase
+  const list=document.getElementById('msg-list');
+  const time=new Date(msg.ts).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+  const tmpDiv=document.createElement('div');
+  tmpDiv.style.cssText='display:flex;flex-direction:column;align-items:flex-end';
+  tmpDiv.innerHTML=`<div style="background:rgba(200,147,64,.15);border:1px solid var(--gold);border-radius:8px 8px 0 8px;padding:8px 12px;max-width:85%"><div style="font-size:12px;color:var(--txt);line-height:1.5">${msg.text.replace(/</g,'&lt;').replace(/\n/g,'<br>')}</div></div><div style="font-size:9px;color:var(--txt3);margin-top:2px">${appMode==='mj'?'MJ':state.chars.find(c=>c.id===charId)?.name||'?'} · ${time}</div>`;
+  list.appendChild(tmpDiv);
+  list.scrollTop=list.scrollHeight;
   await fbSaveMessage(charId,msg);
-  renderMessages();
+  // Refresh complet pour avoir les vrais keys Firebase (pour le marquage lu)
+  setTimeout(()=>renderMessages(),500);
 }
 
 // ── SPAM FIX: remove polling, keep only Firebase listener ──
