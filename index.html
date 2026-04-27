@@ -637,6 +637,7 @@ tr:hover td{background:rgba(200,147,64,.03)}
   <button onclick="showTab('fiches',this)">📋 Fiches</button>
   <button onclick="showTab('etats',this)">⚠ États</button>
   <button onclick="showTab('recap',this)">📈 Récap</button>
+  <button id="nav-messages" onclick="showTab('messages',this)" style="position:relative">✉ Messages<span id="msg-badge" style="display:none;position:absolute;top:-4px;right:-4px;background:var(--red3);color:#fff;font-size:8px;border-radius:50%;width:14px;height:14px;line-height:14px;text-align:center;font-family:monospace;animation:pulse 1s infinite">!</span></button>
   <button onclick="showTab('assistant',this)">🤖 Assistant</button>
   <button id="nav-settings" onclick="showTab('settings',this)">⚙ Paramètres</button>
 </nav>
@@ -743,6 +744,27 @@ tr:hover td{background:rgba(200,147,64,.03)}
     <button class="lf-btn" onclick="setRecFilter('PC',this)">PC</button>
   </div>
   <table><thead><tr><th>PJ</th><th>Événement</th><th>Valeur</th><th>Source</th><th>Type</th><th>Session</th><th>Combat</th><th>Round</th><th>PV rest.</th></tr></thead><tbody id="rec-body"></tbody></table>
+</div>
+
+<!-- MESSAGES TAB -->
+<div id="tab-messages" class="tc">
+  <div style="max-width:700px;margin:0 auto;padding:14px">
+    <div class="ptitle">✉ Messages Privés</div>
+    <!-- MJ: sélecteur destinataire -->
+    <div id="msg-dest-row" style="display:none;margin-bottom:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <span style="font-family:'Cinzel',serif;font-size:9px;color:var(--txt2);letter-spacing:.08em">ENVOYER À :</span>
+      <select id="msg-dest" style="background:var(--bg3);border:1px solid var(--bdr);color:var(--wht);font-family:'Crimson Text',serif;font-size:13px;padding:4px 8px;border-radius:2px"></select>
+    </div>
+    <!-- Conversation display -->
+    <div id="msg-conv-title" style="font-family:'Cinzel',serif;font-size:10px;color:var(--gold2);letter-spacing:.1em;margin-bottom:8px;text-transform:uppercase"></div>
+    <div id="msg-list" style="background:var(--bg2);border:1px solid var(--bdr);border-radius:3px;padding:10px;min-height:200px;max-height:50vh;overflow-y:auto;display:flex;flex-direction:column;gap:8px;margin-bottom:10px"></div>
+    <!-- Input -->
+    <div style="display:flex;gap:8px">
+      <textarea id="msg-input" placeholder="Votre message..." rows="2" style="flex:1;background:var(--bg3);border:1px solid var(--bdr);color:var(--wht);font-family:'Crimson Text',serif;font-size:13px;padding:8px 10px;border-radius:2px;resize:none;line-height:1.5" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage();}"></textarea>
+      <button class="btn btn-g" style="align-self:flex-end;padding:8px 14px" onclick="sendMessage()">✉ Envoyer</button>
+    </div>
+    <p style="font-size:10px;color:var(--txt3);margin-top:6px">Entrée pour envoyer · Shift+Entrée pour nouvelle ligne</p>
+  </div>
 </div>
 
 <div id="tab-assistant" class="tc">
@@ -1092,6 +1114,16 @@ async function initFirebase(){
     // Start listeners
     fbListenPendingLvlUp();
     fbListenPhotos();
+    fbListenMessages();
+    // Clean orphan pending lvlup (char deleted)
+    setTimeout(()=>{
+      Object.keys(pendingLvlUps).forEach(charId=>{
+        if(!state.chars.find(c=>c.id===parseInt(charId))){
+          delete pendingLvlUps[charId];
+          fbSavePendingLvlUp();
+        }
+      });
+    },2000);
   }catch(e){
     console.warn('Firebase:',e.message);
     const el=document.getElementById('firebase-status');
@@ -1837,7 +1869,146 @@ async function forceRefresh(){
   if(btn){btn.textContent='↺';btn.disabled=false;}
 }
 
-// ── FIREBASE LVLUP SYNC ──
+// ═══════════════════════════════════════════════════════════════
+//  MESSAGES PRIVÉS
+// ═══════════════════════════════════════════════════════════════
+let msgUnread=0;
+
+function getMsgKey(charId){
+  // Conversation key between MJ and a player char
+  return `msg_${charId}`;
+}
+
+async function fbSaveMessage(charId, msgObj){
+  if(!firebaseDB||!_fbConnected)return;
+  try{
+    const {getDatabase,ref,push}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
+    await push(ref(getDatabase(firebaseApp),`messages/${charId}`),msgObj);
+  }catch(e){console.warn('FB msg save:',e.message);}
+}
+
+async function fbMarkRead(charId, msgKey){
+  if(!firebaseDB||!_fbConnected)return;
+  try{
+    const {getDatabase,ref,update}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
+    await update(ref(getDatabase(firebaseApp),`messages/${charId}/${msgKey}`),{readAt:Date.now()});
+  }catch(e){console.warn('FB mark read:',e.message);}
+}
+
+let _msgListeners={};
+async function fbListenMessages(){
+  if(!firebaseDB||!_fbConnected)return;
+  // Determine which conversations to listen to
+  const charIds=appMode==='mj'
+    ?state.chars.map(c=>c.id)
+    :[selectedPlayerChar].filter(Boolean);
+  try{
+    const {getDatabase,ref,onValue}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
+    charIds.forEach(charId=>{
+      if(_msgListeners[charId])return; // already listening
+      _msgListeners[charId]=onValue(ref(getDatabase(firebaseApp),`messages/${charId}`),(snap)=>{
+        if(!snap.exists())return;
+        const msgs=snap.val();
+        // Count unread messages sent TO current user
+        let newUnread=0;
+        Object.values(msgs).forEach(m=>{
+          const isForMe = appMode==='mj' ? m.from!=='mj' : m.from==='mj';
+          if(isForMe&&!m.readAt) newUnread++;
+        });
+        if(newUnread>msgUnread){
+          toast(`✉ Nouveau message de ${appMode==='mj'?state.chars.find(c=>c.id===charId)?.name||'?':'MJ'}`,'t-i');
+        }
+        msgUnread=newUnread;
+        updateMsgBadge();
+        // Refresh if messages tab is open
+        if(document.getElementById('tab-messages')?.classList.contains('active'))
+          renderMessages();
+      });
+    });
+  }catch(e){console.warn('FB msg listen:',e.message);}
+}
+
+function updateMsgBadge(){
+  const badge=document.getElementById('msg-badge');
+  if(!badge)return;
+  badge.style.display=msgUnread>0?'block':'none';
+  badge.textContent=msgUnread>9?'9+':msgUnread||'!';
+}
+
+async function renderMessages(){
+  // Setup dest selector for MJ
+  const destRow=document.getElementById('msg-dest-row');
+  const destSel=document.getElementById('msg-dest');
+  if(appMode==='mj'){
+    destRow.style.display='flex';
+    if(destSel.options.length!==state.chars.length){
+      destSel.innerHTML=state.chars.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+      destSel.onchange=()=>renderMessages();
+    }
+  } else {
+    destRow.style.display='none';
+  }
+  const charId=appMode==='mj'?parseInt(destSel?.value||state.chars[0]?.id):selectedPlayerChar;
+  const c=state.chars.find(x=>x.id===charId);
+  document.getElementById('msg-conv-title').textContent=
+    appMode==='mj'?`Conversation avec ${c?.name||'?'}`:`Conversation avec le MJ`;
+  // Load messages from Firebase
+  if(!firebaseDB||!_fbConnected){
+    document.getElementById('msg-list').innerHTML='<div style="color:var(--txt3);font-style:italic;font-size:12px;text-align:center;margin:auto">Firebase non connecté</div>';
+    return;
+  }
+  try{
+    const {getDatabase,ref,get,update}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
+    const snap=await get(ref(getDatabase(firebaseApp),`messages/${charId}`));
+    const list=document.getElementById('msg-list');
+    if(!snap.exists()){list.innerHTML='<div style="color:var(--txt3);font-style:italic;font-size:12px;text-align:center;margin:auto">Aucun message</div>';return;}
+    const msgs=Object.entries(snap.val()).sort((a,b)=>a[1].ts-b[1].ts);
+    list.innerHTML=msgs.map(([key,m])=>{
+      const isMine=appMode==='mj'?m.from==='mj':m.from!=='mj';
+      const senderName=m.from==='mj'?'MJ':(state.chars.find(x=>x.id===charId)?.name||'?');
+      const time=new Date(m.ts).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+      const date=new Date(m.ts).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'});
+      const readStatus=m.from==='mj'&&appMode==='mj'&&m.readAt
+        ?`<span style="font-size:9px;color:var(--grn3)"> ✓✓ Lu</span>`
+        :m.from!=='mj'&&appMode!=='mj'&&m.readAt
+        ?`<span style="font-size:9px;color:var(--grn3)"> ✓✓ Lu</span>`:'';
+      return`<div style="display:flex;flex-direction:column;align-items:${isMine?'flex-end':'flex-start'}">
+        <div style="background:${isMine?'rgba(200,147,64,.15)':'var(--bg3)'};border:1px solid ${isMine?'var(--gold)':'var(--bdr)'};border-radius:${isMine?'8px 8px 0 8px':'8px 8px 8px 0'};padding:8px 12px;max-width:85%">
+          <div style="font-size:12px;color:var(--txt);line-height:1.5">${m.text.replace(/</g,'&lt;').replace(/\n/g,'<br>')}</div>
+        </div>
+        <div style="font-size:9px;color:var(--txt3);margin-top:2px">${senderName} · ${date} ${time}${readStatus}</div>
+      </div>`;
+    }).join('');
+    list.scrollTop=list.scrollHeight;
+    // Mark unread messages as read
+    const toMark={};
+    let marked=false;
+    msgs.forEach(([key,m])=>{
+      const isForMe=appMode==='mj'?m.from!=='mj':m.from==='mj';
+      if(isForMe&&!m.readAt){toMark[`${key}/readAt`]=Date.now();marked=true;}
+    });
+    if(marked){
+      await update(ref(getDatabase(firebaseApp),`messages/${charId}`),toMark);
+      msgUnread=0;updateMsgBadge();
+    }
+  }catch(e){
+    document.getElementById('msg-list').innerHTML=`<div style="color:var(--red3);font-size:11px">Erreur: ${e.message}</div>`;
+  }
+}
+
+async function sendMessage(){
+  const input=document.getElementById('msg-input');
+  const text=input.value.trim();if(!text)return;
+  const destSel=document.getElementById('msg-dest');
+  const charId=appMode==='mj'?parseInt(destSel?.value||state.chars[0]?.id):selectedPlayerChar;
+  if(!charId){toast('Sélectionne un personnage','t-w');return;}
+  const msg={text,from:appMode==='mj'?'mj':`char_${charId}`,ts:Date.now(),readAt:null};
+  input.value='';
+  await fbSaveMessage(charId,msg);
+  renderMessages();
+}
+
+// ── SPAM FIX: remove polling, keep only Firebase listener ──
 async function fbSavePendingLvlUp(){
   localStorage.setItem('anathazer_pending_lvlup',JSON.stringify(pendingLvlUps));
   if(!firebaseDB||!_fbConnected)return;
@@ -2361,11 +2532,12 @@ function togglePresent(id){
 }
 function deleteChar(id){
   const c=state.chars.find(x=>x.id===id);if(!c)return;
-  // Players can only delete chars they created
   if(appMode==='joueur'){
     if(c.createdBy!==selectedPlayerChar){toast('Tu ne peux supprimer que les personnages que tu as créés','t-w');return;}
   }
   if(!confirm(`Supprimer ${c.name} ? Irréversible.`))return;
+  // Clean up pending lvlup
+  if(pendingLvlUps[id]){delete pendingLvlUps[id];fbSavePendingLvlUp();}
   state.chars=state.chars.filter(x=>x.id!==id);
   state.log=state.log.filter(l=>l.charId!==id);
   delete cardTypes[id];delete charHistory[id];
@@ -3443,6 +3615,7 @@ function showTab(id,btn){
   if(id==='dice') initDiceSVG();
   if(id==='settings'){renderSettings();renderLayoutGrid();}
   if(id==='assistant') initAssistantTab();
+  if(id==='messages') renderMessages();
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -3490,7 +3663,7 @@ renderEtats();
 initFirebase();
 checkPendingLvlUps();
 // Poll for pending lvlup every 5s (for same-browser MJ/player sessions)
-setInterval(()=>{if(appMode==='mj')checkPendingLvlUps();},5000);
+// Firebase listener handles pending lvlup updates — no polling needed
 
 // ── PWA Service Worker ──
 if('serviceWorker' in navigator){
