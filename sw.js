@@ -1,6 +1,5 @@
-const CACHE='anathazerín-v4';
+const CACHE='anathazerín-v5';
 self.addEventListener('install',e=>{
-  // Ne pas activer immédiatement — attendre le signal de l'app
   e.waitUntil(caches.open(CACHE).then(c=>c.add('.')));
 });
 self.addEventListener('activate',e=>{
@@ -15,7 +14,6 @@ self.addEventListener('fetch',e=>{
     fetch(e.request).catch(()=>caches.match(e.request).then(r=>r||caches.match('.')))
   );
 });
-// Message depuis l'app pour activer la nouvelle version
 self.addEventListener('message',e=>{
   if(e.data&&e.data.type==='SKIP_WAITING') self.skipWaiting();
 });
