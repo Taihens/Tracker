@@ -1132,7 +1132,7 @@ const FIREBASE_CONFIG = {
   messagingSenderId: "897012049503",
   appId: "1:897012049503:web:ece6b0ee0c090fd897ddea"
 };
-let firebaseDB=null,firebaseApp=null,_fbSyncTimer=null,_fbConnected=false,_fbIgnoreNext=false,_localCombatTs=0;
+let firebaseDB=null,firebaseApp=null,_fbSyncTimer=null,_fbConnected=false,_fbIgnoreNext=false,_localCombatTs=0,_localSaveTs=0;
 
 async function initFirebase(){
   try{
@@ -1146,26 +1146,28 @@ async function initFirebase(){
       const remote=snap.val();
       if(!remote||!remote._ts)return;
       const localTs=state._ts||0;
-      if(remote._ts>=localTs){
+      const msSinceLocalSave=Date.now()-_localSaveTs;
+      if(remote._ts>localTs&&msSinceLocalSave>3000){
+        // Remote is newer and no recent local save: full merge
         const merged={...remote};
-        // Merge log: keep local-only entries not yet in remote
-        const localOnly=[];
         if(state.log&&state.log.length>0&&remote.log){
           const rIds=new Set((remote.log||[]).map(l=>l.logId||l.ts));
-          localOnly.push(...state.log.filter(l=>!rIds.has(l.logId||l.ts)));
+          const localOnly=state.log.filter(l=>!rIds.has(l.logId||l.ts));
           if(localOnly.length>0) merged.log=[...(remote.log||[]),...localOnly];
-        }
-        // Preserve local combat state if a local PV change was made in the last 5 seconds
-        if(state.chars&&merged.chars&&(Date.now()-_localCombatTs)<5000){
-          merged.chars=merged.chars.map(rc=>{
-            const lc=state.chars.find(c=>c.id===rc.id);
-            if(!lc) return rc;
-            return {...rc,pvActuel:lc.pvActuel,pmActuel:lc.pmActuel,pcActuel:lc.pcActuel,etat:lc.etat};
-          });
         }
         state=merged;
         localStorage.setItem('anathazer_v4',JSON.stringify(state));
         render();renderEtats();
+      } else if(remote._ts>localTs&&msSinceLocalSave<=3000){
+        // Remote is newer but we just saved locally: merge log only, keep local chars
+        if(state.log&&state.log.length>0&&remote.log){
+          const rIds=new Set((remote.log||[]).map(l=>l.logId||l.ts));
+          const localOnly=state.log.filter(l=>!rIds.has(l.logId||l.ts));
+          if(localOnly.length>0){
+            state.log=[...(remote.log||[]),...localOnly];
+            localStorage.setItem('anathazer_v4',JSON.stringify(state));
+          }
+        }
       }
     });
     _fbConnected=true;
@@ -1199,7 +1201,8 @@ async function syncToFirebase(){
   },800);
 }
 function save(){
-  state._ts=Date.now(); // Mettre à jour immédiatement pour éviter l'écrasement par le listener Firebase
+  state._ts=Date.now();
+  _localSaveTs=Date.now();
   localStorage.setItem('anathazer_v4',JSON.stringify(state));
   syncToFirebase();
 }
