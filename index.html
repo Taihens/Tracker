@@ -1148,10 +1148,22 @@ async function initFirebase(){
       const localTs=state._ts||0;
       if(remote._ts>localTs+2000){
         const merged={...remote};
+        // Merge log: keep local-only entries
+        const localOnly=[];
         if(state.log&&state.log.length>0&&remote.log){
           const rIds=new Set((remote.log||[]).map(l=>l.logId||l.ts));
-          const localOnly=state.log.filter(l=>!rIds.has(l.logId||l.ts));
+          localOnly.push(...state.log.filter(l=>!rIds.has(l.logId||l.ts)));
           merged.log=[...(remote.log||[]),...localOnly];
+        }
+        // Preserve local combat state for chars that have unsynced local changes
+        if(localOnly.length>0&&state.chars&&merged.chars){
+          const localChangedIds=new Set(localOnly.map(l=>l.charId));
+          merged.chars=merged.chars.map(rc=>{
+            if(!localChangedIds.has(rc.id)) return rc;
+            const lc=state.chars.find(c=>c.id===rc.id);
+            if(!lc) return rc;
+            return {...rc,pvActuel:lc.pvActuel,pmActuel:lc.pmActuel,pcActuel:lc.pcActuel,etat:lc.etat};
+          });
         }
         state=merged;
         localStorage.setItem('anathazer_v4',JSON.stringify(state));
@@ -1848,6 +1860,8 @@ function applyDmg(id){
   document.getElementById('dmg-'+id).value='';
   document.getElementById('src-'+id).value='';
   save(); render();
+  if(document.getElementById('tab-log').classList.contains('active'))renderLog();
+  if(document.getElementById('tab-recap').classList.contains('active'))renderRecap();
   toast(`${c.name} — −${amt} PV [${type}] (${avant}→${c.pvActuel})`,'t-d');
   if(c.pvActuel===0){toast(`☠ ${c.name} est Inconscient !`,'t-w');checkDeath(c);}
 }
@@ -1865,6 +1879,8 @@ function applyHeal(id){
   document.getElementById('heal-'+id).value='';
   document.getElementById('hsrc-'+id).value='';
   save(); render();
+  if(document.getElementById('tab-log').classList.contains('active'))renderLog();
+  if(document.getElementById('tab-recap').classList.contains('active'))renderRecap();
   toast(`${c.name} — +${amt} PV (${avant}→${c.pvActuel})`,'t-h');
 }
 function adjPM(id,d){
