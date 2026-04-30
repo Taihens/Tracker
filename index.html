@@ -1132,7 +1132,7 @@ const FIREBASE_CONFIG = {
   messagingSenderId: "897012049503",
   appId: "1:897012049503:web:ece6b0ee0c090fd897ddea"
 };
-let firebaseDB=null,firebaseApp=null,_fbSyncTimer=null,_fbConnected=false,_fbIgnoreNext=false,_localCombatTs=0,_localSaveTs=0;
+let firebaseDB=null,firebaseApp=null,_fbSyncTimer=null,_fbConnected=false,_fbIgnoreNext=false;
 
 async function initFirebase(){
   try{
@@ -1146,28 +1146,10 @@ async function initFirebase(){
       const remote=snap.val();
       if(!remote||!remote._ts)return;
       const localTs=state._ts||0;
-      const msSinceLocalSave=Date.now()-_localSaveTs;
-      if(remote._ts>localTs&&msSinceLocalSave>3000){
-        // Remote is newer and no recent local save: full merge
-        const merged={...remote};
-        if(state.log&&state.log.length>0&&remote.log){
-          const rIds=new Set((remote.log||[]).map(l=>l.logId||l.ts));
-          const localOnly=state.log.filter(l=>!rIds.has(l.logId||l.ts));
-          if(localOnly.length>0) merged.log=[...(remote.log||[]),...localOnly];
-        }
-        state=merged;
+      if(remote._ts>localTs+2000){
+        state=snap.val();
         localStorage.setItem('anathazer_v4',JSON.stringify(state));
         render();renderEtats();
-      } else if(remote._ts>localTs&&msSinceLocalSave<=3000){
-        // Remote is newer but we just saved locally: merge log only, keep local chars
-        if(state.log&&state.log.length>0&&remote.log){
-          const rIds=new Set((remote.log||[]).map(l=>l.logId||l.ts));
-          const localOnly=state.log.filter(l=>!rIds.has(l.logId||l.ts));
-          if(localOnly.length>0){
-            state.log=[...(remote.log||[]),...localOnly];
-            localStorage.setItem('anathazer_v4',JSON.stringify(state));
-          }
-        }
       }
     });
     _fbConnected=true;
@@ -1202,7 +1184,6 @@ async function syncToFirebase(){
 }
 function save(){
   state._ts=Date.now();
-  _localSaveTs=Date.now();
   localStorage.setItem('anathazer_v4',JSON.stringify(state));
   syncToFirebase();
 }
@@ -1863,7 +1844,6 @@ function applyDmg(id){
   const type=cardTypes[id]||'Physique';
   const avant=c.pvActuel;
   c.pvActuel=Math.max(0,c.pvActuel-amt);
-  _localCombatTs=Date.now();
   updateCardPV(c);
   if(c.pvActuel===0)c.etat='Inconscient';
   const entry={logId:Date.now()+Math.random(),charId:id,charName:c.name,ev:'Dégâts',val:amt,source:src,combat:document.getElementById('g-cname').value||'—',type,session:state.session,cbt:state.combat,rnd:state.round,pv:c.pvActuel,ts:Date.now()};
@@ -1884,7 +1864,6 @@ function applyHeal(id){
   const src=document.getElementById('hsrc-'+id).value||'—';
   const avant=c.pvActuel;
   c.pvActuel=Math.min(c.pvMax,c.pvActuel+amt);
-  _localCombatTs=Date.now();
   updateCardPV(c);
   if(c.etat==='Inconscient'&&c.pvActuel>0)c.etat='Normal';
   const entry={logId:Date.now()+Math.random(),charId:id,charName:c.name,ev:'Soin',val:amt,source:src,combat:document.getElementById('g-cname').value||'—',type:'—',session:state.session,cbt:state.combat,rnd:state.round,pv:c.pvActuel,ts:Date.now()};
