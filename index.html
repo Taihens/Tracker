@@ -1943,7 +1943,9 @@ const COF_PAGES=[
   'https://www.co-drs.org/fr/jeu/etats-prejudiciables',
   'https://www.co-drs.org/fr/jeu/regles/creer-un-personnage',
   'https://www.co-drs.org/fr/jeu/regles/creer-un-personnage/voies-et-capacites',
+  'https://www.co-drs.org/fr/jeu/races',
 ];
+const COF_RACES_INDEX='https://www.co-drs.org/fr/jeu/races';
 
 let _cofImportStopped=false;
 
@@ -2081,6 +2083,34 @@ async function importCOFRules(){
     if(failed.length>0){
       window._cofFailedPages=failed;
       status.innerHTML+=`<br><button onclick="retryCOFPages()" style="margin-top:6px;font-family:Cinzel,serif;font-size:9px;background:rgba(200,147,64,.15);border:1px solid var(--gold);color:var(--gold);padding:3px 8px;border-radius:2px;cursor:pointer">↺ Réessayer ${failed.length} page(s) échouée(s)</button>`;
+    }
+  }
+
+  // Crawler les sous-pages de races si la page index a été importée
+  if(!_cofImportStopped){
+    const racesIndexLabel=COF_RACES_INDEX.split('/').slice(-2).join('/');
+    const racesText=results.find(r=>r.includes(`=== ${racesIndexLabel} ===`))||'';
+    if(racesText){
+      // Extraire les liens /fr/jeu/races/[slug] de la page index
+      const raceLinks=[...new Set(racesText.match(/\/fr\/jeu\/races\/[a-z0-9\-]+/g)||[])];
+      const raceUrls=raceLinks.map(p=>`https://www.co-drs.org${p}`).filter(u=>u!==COF_RACES_INDEX);
+      for(const raceUrl of raceUrls){
+        if(_cofImportStopped) break;
+        const raceLabel=raceUrl.split('/').slice(-2).join('/');
+        if(existingText.includes(`=== ${raceLabel} ===`)) continue;
+        if(status) status.innerHTML+= `<br>⏳ Race : ${raceLabel}`;
+        const raceText=await fetchPage(raceUrl);
+        if(raceText){
+          results.push(`\n=== ${raceLabel} ===\n${raceText}`);
+          const full=results.join('\n');
+          window._cofRulesText=full;
+          localStorage.setItem('anathazer_cof_rules',full);
+          if(status) status.innerHTML+= ` ✅`;
+        } else {
+          if(status) status.innerHTML+= ` ❌`;
+        }
+        if(!_cofImportStopped) await new Promise(r=>setTimeout(r,3500));
+      }
     }
   }
 
