@@ -4110,31 +4110,56 @@ function renderPendingLvlUps(){
   if(!pending.length){el.innerHTML='<p style="color:var(--txt2);font-style:italic;text-align:center">Aucune demande en attente.</p>';foot.innerHTML='<button class="btn-lg btn-r" onclick="closeLvlUpPending()">Fermer</button>';return;}
   const items=pending.map(p=>{
     const c=state.chars.find(x=>x.id===p.charId);if(!c)return'';
-    const conMod=parseMod(c.attrs?.CON||0);const pvGain=dvMax(c.dv)+conMod;
-    const pmGain=p.pmGain||0;
-    const capsDetail=p.selected.map(sel=>{
+    const caps=p.selected.map(sel=>{
       const v=c.voies.find(v=>v.nom===sel.voieNom);
       const cap=v?.caps.find(cap=>cap.r===sel.rang);
-      return`<div style="padding:4px 0;border-bottom:1px solid rgba(58,46,28,.2)"><span style="font-family:Cinzel,serif;font-size:9px;color:var(--gold2)">${sel.rang}</span> <span style="font-size:12px;color:var(--wht)">${cap?.nom||'?'}</span>${cap?.desc?`<div style="font-size:10px;color:var(--txt2);margin-top:2px">${cap.desc}</div>`:''}${cap?.descFull?`<div style="font-size:10px;color:var(--txt3);margin-top:2px;font-style:italic">${cap.descFull.slice(0,180)}${cap.descFull.length>180?'…':''}</div>`:''}</div>`;
-    }).join('')||'<div style="color:var(--txt3);font-style:italic;font-size:12px">Aucune capacité choisie</div>';
-    const atCur=parseAtt(c.attContact||c.att||'0');
-    return`<div style="background:var(--bg3);border:1px solid var(--bdr);border-radius:3px;padding:10px 13px;margin-bottom:8px">
-      <div style="font-family:'Cinzel',serif;font-size:12px;color:var(--gold2);margin-bottom:8px">${c.name} — Niv.${c.niveau} → ${c.niveau+1}</div>
-      <div style="font-size:10px;font-family:Cinzel,serif;letter-spacing:.08em;color:var(--gold);text-transform:uppercase;margin-bottom:5px">Gains automatiques</div>
-      <div style="font-size:11.5px;color:var(--txt2);margin-bottom:8px">
-        +${pvGain} PV max &amp; actuels${pmGain>0?` · +${pmGain} PM`:''} · Att contact/distance/magique ${fmtAtt(atCur)} → <strong style="color:var(--grn3)">${fmtAtt(atCur+1)}</strong>
+      return cap?.nom||sel.rang;
+    }).join(', ')||'Aucune capacité';
+    const date=p.timestamp?new Date(p.timestamp).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'';
+    return`<div style="background:var(--bg3);border:1px solid var(--bdr);border-radius:3px;padding:10px 13px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+      <div>
+        <div style="font-family:'Cinzel',serif;font-size:12px;color:var(--gold2)">${c.name} — Niv.${c.niveau} → ${c.niveau+1}</div>
+        <div style="font-size:10px;color:var(--txt3);margin-top:2px">${caps}${date?` · ${date}`:''}</div>
       </div>
-      <div style="font-size:10px;font-family:Cinzel,serif;letter-spacing:.08em;color:var(--gold);text-transform:uppercase;margin-bottom:5px">Capacités choisies</div>
-      <div style="margin-bottom:10px">${capsDetail}</div>
-      <div style="display:flex;gap:6px">
-        <button class="btn btn-h" onclick="mjApproveLvlUp(${c.id})">✓ Approuver</button>
-        <button class="btn btn-r" onclick="mjRejectLvlUp(${c.id})">✕ Refuser</button>
-      </div>
+      <button class="btn btn-h" style="white-space:nowrap" onclick="inspectLvlUp(${c.id})">🔍 Inspecter</button>
     </div>`;
   }).join('');
   el.innerHTML=`<p style="font-family:'Cinzel',serif;font-size:8.5px;letter-spacing:.1em;color:var(--gold);text-transform:uppercase;margin-bottom:10px">Demandes de Level Up en attente</p>${items}`;
   foot.innerHTML='<button class="btn-lg btn-r" onclick="closeLvlUpPending()">Fermer</button>';
   document.getElementById('lvlup-pending-overlay').style.display='flex';
+}
+function inspectLvlUp(charId){
+  const p=pendingLvlUps[charId];if(!p)return;
+  const c=state.chars.find(x=>x.id===charId);if(!c)return;
+  const el=document.getElementById('lvlup-pending-body');
+  const foot=document.getElementById('lvlup-pending-footer');
+  const conMod=parseMod(c.attrs?.CON||0);const pvGain=dvMax(c.dv)+conMod;
+  const pmGain=p.pmGain||0;
+  const atCur=parseAtt(c.attContact||c.att||'0');
+  const capsDetail=p.selected.map(sel=>{
+    const v=c.voies.find(v=>v.nom===sel.voieNom);
+    const cap=v?.caps.find(cap=>cap.r===sel.rang);
+    return`<div style="padding:6px 0;border-bottom:1px solid rgba(58,46,28,.2)">
+      <div><span style="font-family:Cinzel,serif;font-size:9px;color:var(--gold2);margin-right:6px">${sel.rang}</span><span style="font-size:13px;color:var(--wht);font-weight:600">${cap?.nom||'?'}</span></div>
+      ${cap?.desc?`<div style="font-size:11px;color:var(--txt2);margin-top:3px">${cap.desc}</div>`:''}
+      ${cap?.descFull?`<div style="font-size:10px;color:var(--txt3);margin-top:3px;font-style:italic">${cap.descFull}</div>`:''}
+    </div>`;
+  }).join('')||'<div style="color:var(--txt3);font-style:italic;font-size:12px">Aucune capacité choisie</div>';
+  el.innerHTML=`
+    <button onclick="renderPendingLvlUps()" style="background:none;border:none;color:var(--txt2);cursor:pointer;font-size:12px;padding:0;margin-bottom:12px">← Retour à la liste</button>
+    <div style="font-family:'Cinzel',serif;font-size:13px;color:var(--gold2);margin-bottom:12px">${c.name} — Niv.${c.niveau} → ${c.niveau+1}</div>
+    <div style="font-family:Cinzel,serif;font-size:8.5px;letter-spacing:.1em;color:var(--gold);text-transform:uppercase;margin-bottom:6px">Gains automatiques</div>
+    <div style="background:var(--bg3);border:1px solid var(--bdr);border-radius:3px;padding:10px 13px;margin-bottom:12px;font-size:12px;color:var(--txt2);line-height:1.8">
+      +${pvGain} PV max &amp; actuels<br>
+      ${pmGain>0?`+${pmGain} PM max &amp; actuels<br>`:''}
+      Attaques : ${fmtAtt(atCur)} → <strong style="color:var(--grn3)">${fmtAtt(atCur+1)}</strong> (contact, distance, magique)
+    </div>
+    <div style="font-family:Cinzel,serif;font-size:8.5px;letter-spacing:.1em;color:var(--gold);text-transform:uppercase;margin-bottom:6px">Capacités choisies</div>
+    <div style="background:var(--bg3);border:1px solid var(--bdr);border-radius:3px;padding:10px 13px;margin-bottom:14px">${capsDetail}</div>`;
+  foot.innerHTML=`
+    <button class="btn-lg btn-r" onclick="renderPendingLvlUps()">← Retour</button>
+    <button class="btn-lg btn-h" onclick="mjApproveLvlUp(${charId})">✓ Approuver</button>
+    <button class="btn-lg btn-r" onclick="mjRejectLvlUp(${charId})">✕ Refuser</button>`;
 }
 
 // ── UNDO LEVEL UP ──
