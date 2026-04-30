@@ -2013,7 +2013,13 @@ async function importCOFRules(){
   const alreadyImported=new Set();
   COF_PAGES.forEach(url=>{
     const label=url.split('/').slice(-2).join('/');
-    if(existingText.includes(`=== ${label} ===`)) alreadyImported.add(url);
+    const marker=`=== ${label} ===`;
+    const idx=existingText.indexOf(marker);
+    if(idx>=0){
+      const excerpt=existingText.slice(idx+marker.length,idx+marker.length+800);
+      const is429=excerpt.includes('429')||excerpt.includes('Too Many Requests')||excerpt.includes('rate limit');
+      if(!is429&&excerpt.trim().length>100) alreadyImported.add(url);
+    }
   });
 
   const results=existingText?[existingText]:[];
