@@ -1146,17 +1146,17 @@ async function initFirebase(){
       const remote=snap.val();
       if(!remote||!remote._ts)return;
       const localTs=state._ts||0;
-      if(remote._ts>localTs+2000){
+      if(remote._ts>=localTs){
         const merged={...remote};
-        // Merge log: keep local-only entries
+        // Merge log: keep local-only entries not yet in remote
         const localOnly=[];
         if(state.log&&state.log.length>0&&remote.log){
           const rIds=new Set((remote.log||[]).map(l=>l.logId||l.ts));
           localOnly.push(...state.log.filter(l=>!rIds.has(l.logId||l.ts)));
-          merged.log=[...(remote.log||[]),...localOnly];
+          if(localOnly.length>0) merged.log=[...(remote.log||[]),...localOnly];
         }
-        // Preserve local combat state if a local change was made in the last 5 seconds
-        if(state.chars&&merged.chars&&(localOnly.length>0||(Date.now()-_localCombatTs)<5000)){
+        // Preserve local combat state if a local PV change was made in the last 5 seconds
+        if(state.chars&&merged.chars&&(Date.now()-_localCombatTs)<5000){
           merged.chars=merged.chars.map(rc=>{
             const lc=state.chars.find(c=>c.id===rc.id);
             if(!lc) return rc;
