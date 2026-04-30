@@ -1936,7 +1936,6 @@ function pointRecup(){
 // ── COF RULES IMPORT ──
 const COF_PAGES=[
   'https://www.co-drs.org/fr/jeu/regles',
-  'https://www.co-drs.org/fr/book/export/html/4', // regles/combat version alternative
   'https://www.co-drs.org/fr/jeu/regles/magie',
   'https://www.co-drs.org/fr/jeu/regles/races',
   'https://www.co-drs.org/fr/jeu/regles/voies-de-prestige',
@@ -1970,7 +1969,6 @@ async function importCOFRules(){
     url=>`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
     url=>`https://corsproxy.io/?${encodeURIComponent(url)}`,
     url=>`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
-    url=>`https://thingproxy.freeboard.io/fetch/${url}`,
   ];
 
   async function fetchPage(url){
