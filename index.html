@@ -1971,21 +1971,23 @@ async function importCOFRules(){
     url=>`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
   ];
 
-  async function fetchPage(url){
+  async function fetchPage(url, attempt=0){
     for(const proxyFn of PROXIES){
       if(_cofImportStopped) return null;
       try{
         const proxyUrl=proxyFn(url);
-        // Pas de timeout — on laisse le fetch aller jusqu'au bout
         const res=await fetch(proxyUrl);
+        if(res.status===429){continue;}
         if(!res.ok) continue;
         let html='';
         if(proxyUrl.includes('allorigins')){
           const data=await res.json();
+          if(data.status&&data.status.http_code===429) continue;
           html=data.contents||'';
         } else {
           html=await res.text();
         }
+        if(html.includes('429')||html.includes('Too Many Requests')) continue;
         if(html.length<200) continue;
         const parser=new DOMParser();
         const doc=parser.parseFromString(html,'text/html');
@@ -1994,6 +1996,14 @@ async function importCOFRules(){
         const text=(main?.textContent||'').replace(/\s+/g,' ').trim();
         if(text.length>200) return text;
       }catch(e){continue;}
+    }
+    // Tous les proxies ont échoué — réessaye jusqu'à 3 fois avec délai croissant
+    if(attempt<3&&!_cofImportStopped){
+      const wait=[8000,15000,25000][attempt];
+      const statusEl=document.getElementById('cof-rules-status');
+      if(statusEl){const cur=statusEl.innerHTML;statusEl.innerHTML=cur+`<br>⏳ 429 — attente ${wait/1000}s avant retry...`;}
+      await new Promise(r=>setTimeout(r,wait));
+      return fetchPage(url,attempt+1);
     }
     return null;
   }
@@ -2053,7 +2063,7 @@ async function importCOFRules(){
       }
     }
     // Délai entre pages pour éviter le rate limiting (429)
-    if(i<COF_PAGES.length-1&&!_cofImportStopped) await new Promise(r=>setTimeout(r,2000));
+    if(i<COF_PAGES.length-1&&!_cofImportStopped) await new Promise(r=>setTimeout(r,3500));
   }
 
   // Affichage final — garde le suivi affiché
