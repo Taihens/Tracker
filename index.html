@@ -782,6 +782,7 @@ tr:hover td{background:rgba(200,147,64,.03)}
     <div id="msg-dest-row" style="display:none;margin-bottom:10px;gap:8px;align-items:center;flex-wrap:wrap">
       <span style="font-family:'Cinzel',serif;font-size:9px;color:var(--txt2);letter-spacing:.08em">ENVOYER À :</span>
       <select id="msg-dest" style="background:var(--bg3);border:1px solid var(--bdr);color:var(--wht);font-family:'Crimson Text',serif;font-size:13px;padding:4px 8px;border-radius:2px"></select>
+      <button class="btn btn-r" style="font-size:9px;padding:4px 10px;margin-left:auto" onclick="deleteConversation()">🗑 Supprimer conv.</button>
     </div>
     <!-- Conversation display -->
     <div id="msg-conv-title" style="font-family:'Cinzel',serif;font-size:10px;color:var(--gold2);letter-spacing:.1em;margin-bottom:8px;text-transform:uppercase"></div>
@@ -2511,6 +2512,22 @@ async function sendMessage(){
   setTimeout(()=>renderMessages(),500);
 }
 
+async function deleteConversation(){
+  if(appMode!=='mj')return;
+  const destSel=document.getElementById('msg-dest');
+  const charId=parseInt(destSel?.value||state.chars[0]?.id);
+  if(!charId)return;
+  const charName=state.chars.find(c=>c.id===charId)?.name||'?';
+  if(!confirm(`Supprimer toute la conversation avec ${charName} ? Cette action est irréversible.`))return;
+  try{
+    const {getDatabase,ref,remove}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
+    await remove(ref(getDatabase(firebaseApp),`messages/${charId}`));
+    msgUnread=0;updateMsgBadge();
+    await renderMessages();
+    toast(`Conversation avec ${charName} supprimée`,'t-i');
+  }catch(e){toast('Erreur suppression: '+e.message,'t-e');}
+}
+
 // ── SPAM FIX: remove polling, keep only Firebase listener ──
 async function fbSavePendingLvlUp(){
   localStorage.setItem('anathazer_pending_lvlup',JSON.stringify(pendingLvlUps));
@@ -3161,7 +3178,7 @@ const COF_EQUIP_DEPART={
 let charWizard={step:0,charId:null,data:{}};
 
 function openCharWizard(){
-  charWizard={step:1,charId:null,data:{name:'',classe:'',race:'',niveau:1,attrs:{FOR:'0',DEX:'0',CON:'0',INT:'0',SAG:'0',CHA:'0'}}};
+  charWizard={step:1,charId:null,data:{name:'',classe:'',race:'',niveau:1,attrs:{FOR:10,DEX:10,CON:10,INT:10,SAG:10,CHA:10}}};
   showCharWizardStep(1);
   document.getElementById('char-wizard-overlay').style.display='flex';
 }
@@ -3225,10 +3242,10 @@ function showCharWizardStep(step){
           const mod=cofMod(total);
           return`<div>
             <label style="font-family:Cinzel,serif;font-size:8px;color:var(--txt2)">${attr}${raceMod?` <span style="color:${raceMod>0?'var(--grn3)':'var(--red3)'}">${raceMod>0?'+':''}${raceMod}</span>`:''}</label>
-            <input type="number" min="3" max="18" value="${base||''}" placeholder="3-18"
-              oninput="this.value=this.value.replace(/^0+(?=\\d)/,'');charWizard.data.attrs['${attr}']=parseInt(this.value)||0;updateWizardPVPM();showCharWizardStep(2)"
+            <input id="wizard-attr-${attr}" type="number" min="3" max="18" value="${base||''}" placeholder="3-18"
+              oninput="this.value=this.value.replace(/^0+(?=\\d)/,'');charWizard.data.attrs['${attr}']=parseInt(this.value)||0;updateWizardPVPM()"
               style="width:100%;background:var(--bg3);border:1px solid var(--bdr);color:var(--wht);font-size:14px;padding:6px 8px;border-radius:2px;box-sizing:border-box">
-            ${total?`<div style="font-size:9px;color:var(--txt3);margin-top:2px">Total: ${total} → mod. <span style="color:${mod>=0?'var(--grn3)':'var(--red3)'}">${mod>=0?'+':''}${mod}</span></div>`:''}
+            <div id="wizard-total-${attr}" style="font-size:9px;color:var(--txt3);margin-top:2px"></div>
           </div>`;
         }).join('')}
       </div>
@@ -3376,6 +3393,20 @@ function updateWizardPVPM(){
   const cl=COF_CLASSES[charWizard.data.classe]||{};
   const niveau=parseInt(charWizard.data.niveau)||1;
   const attrs=charWizard.data.attrs||{};
+  const rd=COF_RACE_DATA[charWizard.data.race]||{};
+  ['FOR','DEX','CON','INT','SAG','CHA'].forEach(a=>{
+    const el=document.getElementById('wizard-total-'+a);
+    if(!el)return;
+    const raceMod=(rd.mods&&rd.mods[a])||0;
+    const base=parseInt(attrs[a])||0;
+    const total=base+raceMod;
+    if(total){
+      const mod=cofMod(total);
+      el.innerHTML=`Total: ${total} → mod. <span style="color:${mod>=0?'var(--grn3)':'var(--red3)'}">${mod>=0?'+':''}${mod}</span>`;
+    } else {
+      el.innerHTML='';
+    }
+  });
   const modCon=cofMod(parseInt(attrs.CON)||0);
   const dvMax={'D4':4,'D6':6,'D8':8,'D10':10,'D12':12}[cl.dv]||6;
   const pvEst=Math.max(1, dvMax*niveau + modCon*niveau);
@@ -3745,7 +3776,9 @@ function prevRankOk(voie, rang){
   const r=parseInt(rang.replace('R',''));
   if(r===1) return true;
   const prev=voie.caps.find(c=>c.r==='R'+(r-1));
-  return prev&&prev.ok;
+  if(!prev) return false;
+  if(prev.ok) return true;
+  return lvlUpSelected.some(s=>s.voieNom===voie.nom&&s.rang===prev.r);
 }
 function capLocked(voie, cap, niveau){
   const r=parseInt(cap.r.replace('R',''));
@@ -4078,11 +4111,20 @@ function renderPendingLvlUps(){
     const c=state.chars.find(x=>x.id===p.charId);if(!c)return'';
     const conMod=parseMod(c.attrs?.CON||0);const pvGain=dvMax(c.dv)+conMod;
     const pmGain=p.pmGain||0;
-    const caps=p.selected.map(sel=>{const v=c.voies.find(v=>v.nom===sel.voieNom);const cap=v?.caps.find(cap=>cap.r===sel.rang);return`${sel.rang} ${cap?.nom||'?'}`;}).join(', ')||'Aucune capacité';
+    const capsDetail=p.selected.map(sel=>{
+      const v=c.voies.find(v=>v.nom===sel.voieNom);
+      const cap=v?.caps.find(cap=>cap.r===sel.rang);
+      return`<div style="padding:4px 0;border-bottom:1px solid rgba(58,46,28,.2)"><span style="font-family:Cinzel,serif;font-size:9px;color:var(--gold2)">${sel.rang}</span> <span style="font-size:12px;color:var(--wht)">${cap?.nom||'?'}</span>${cap?.desc?`<div style="font-size:10px;color:var(--txt2);margin-top:2px">${cap.desc}</div>`:''}${cap?.descFull?`<div style="font-size:10px;color:var(--txt3);margin-top:2px;font-style:italic">${cap.descFull.slice(0,180)}${cap.descFull.length>180?'…':''}</div>`:''}</div>`;
+    }).join('')||'<div style="color:var(--txt3);font-style:italic;font-size:12px">Aucune capacité choisie</div>';
+    const atCur=parseAtt(c.attContact||c.att||'0');
     return`<div style="background:var(--bg3);border:1px solid var(--bdr);border-radius:3px;padding:10px 13px;margin-bottom:8px">
-      <div style="font-family:'Cinzel',serif;font-size:12px;color:var(--gold2);margin-bottom:6px">${c.name} — Niv.${c.niveau} → ${c.niveau+1}</div>
-      <div style="font-size:11.5px;color:var(--txt2);margin-bottom:3px">+${pvGain} PV | +${pmGain} PM | Att +1 sur toutes</div>
-      <div style="font-size:11.5px;color:var(--txt2);margin-bottom:8px">Capacités : ${caps}</div>
+      <div style="font-family:'Cinzel',serif;font-size:12px;color:var(--gold2);margin-bottom:8px">${c.name} — Niv.${c.niveau} → ${c.niveau+1}</div>
+      <div style="font-size:10px;font-family:Cinzel,serif;letter-spacing:.08em;color:var(--gold);text-transform:uppercase;margin-bottom:5px">Gains automatiques</div>
+      <div style="font-size:11.5px;color:var(--txt2);margin-bottom:8px">
+        +${pvGain} PV max &amp; actuels${pmGain>0?` · +${pmGain} PM`:''} · Att contact/distance/magique ${fmtAtt(atCur)} → <strong style="color:var(--grn3)">${fmtAtt(atCur+1)}</strong>
+      </div>
+      <div style="font-size:10px;font-family:Cinzel,serif;letter-spacing:.08em;color:var(--gold);text-transform:uppercase;margin-bottom:5px">Capacités choisies</div>
+      <div style="margin-bottom:10px">${capsDetail}</div>
       <div style="display:flex;gap:6px">
         <button class="btn btn-h" onclick="mjApproveLvlUp(${c.id})">✓ Approuver</button>
         <button class="btn btn-r" onclick="mjRejectLvlUp(${c.id})">✕ Refuser</button>
@@ -4690,6 +4732,7 @@ initFirebase().then(()=>{
   }
 });
 checkPendingLvlUps();
+checkPendingChars();
 
 // ── NETTOYAGE SW + AUTO-UPDATE ──
 if('serviceWorker' in navigator){
