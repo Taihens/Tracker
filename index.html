@@ -3888,7 +3888,7 @@ function buildLvlPage1(c){
       <div class="lu-voie">
         <div class="lu-voie-title">${v.nom}${isPrestige(v.nom)?' <span style="font-size:9px;color:var(--gold3)">(Prestige — 2pts/rang)</span>':''}</div>
         ${v.caps.map(cap=>{
-          const lock=capLocked(v,cap,c.niveau+1);
+          const lock=capLocked(v,cap,c.niveau);
           const isSel=lvlUpSelected.some(s=>s.voieNom===v.nom&&s.rang===cap.r);
           const cost=capCost(cap.r,v.nom);
           const canAfford=2-pts>=cost||isSel;
