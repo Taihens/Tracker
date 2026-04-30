@@ -1132,7 +1132,7 @@ const FIREBASE_CONFIG = {
   messagingSenderId: "897012049503",
   appId: "1:897012049503:web:ece6b0ee0c090fd897ddea"
 };
-let firebaseDB=null,firebaseApp=null,_fbSyncTimer=null,_fbConnected=false,_fbIgnoreNext=false;
+let firebaseDB=null,firebaseApp=null,_fbSyncTimer=null,_fbConnected=false,_fbIgnoreNext=false,_localCombatTs=0;
 
 async function initFirebase(){
   try{
@@ -1155,11 +1155,9 @@ async function initFirebase(){
           localOnly.push(...state.log.filter(l=>!rIds.has(l.logId||l.ts)));
           merged.log=[...(remote.log||[]),...localOnly];
         }
-        // Preserve local combat state for chars that have unsynced local changes
-        if(localOnly.length>0&&state.chars&&merged.chars){
-          const localChangedIds=new Set(localOnly.map(l=>l.charId));
+        // Preserve local combat state if a local change was made in the last 5 seconds
+        if(state.chars&&merged.chars&&(localOnly.length>0||(Date.now()-_localCombatTs)<5000)){
           merged.chars=merged.chars.map(rc=>{
-            if(!localChangedIds.has(rc.id)) return rc;
             const lc=state.chars.find(c=>c.id===rc.id);
             if(!lc) return rc;
             return {...rc,pvActuel:lc.pvActuel,pmActuel:lc.pmActuel,pcActuel:lc.pcActuel,etat:lc.etat};
@@ -1853,6 +1851,7 @@ function applyDmg(id){
   const type=cardTypes[id]||'Physique';
   const avant=c.pvActuel;
   c.pvActuel=Math.max(0,c.pvActuel-amt);
+  _localCombatTs=Date.now();
   if(c.pvActuel===0)c.etat='Inconscient';
   const entry={logId:Date.now()+Math.random(),charId:id,charName:c.name,ev:'Dégâts',val:amt,source:src,combat:document.getElementById('g-cname').value||'—',type,session:state.session,cbt:state.combat,rnd:state.round,pv:c.pvActuel,ts:Date.now()};
   state.log.push(entry);
@@ -1872,6 +1871,7 @@ function applyHeal(id){
   const src=document.getElementById('hsrc-'+id).value||'—';
   const avant=c.pvActuel;
   c.pvActuel=Math.min(c.pvMax,c.pvActuel+amt);
+  _localCombatTs=Date.now();
   if(c.etat==='Inconscient'&&c.pvActuel>0)c.etat='Normal';
   const entry={logId:Date.now()+Math.random(),charId:id,charName:c.name,ev:'Soin',val:amt,source:src,combat:document.getElementById('g-cname').value||'—',type:'—',session:state.session,cbt:state.combat,rnd:state.round,pv:c.pvActuel,ts:Date.now()};
   state.log.push(entry);
