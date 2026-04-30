@@ -3903,7 +3903,8 @@ function buildLvlPage1(c){
           else{cls+=' available';}
           const safeVoie=v.nom.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
           const onclick=(lock||(!canAfford&&!isSel))?'':`onclick="toggleLuCap('${safeVoie}','${cap.r}',${cost})"`;
-          return`<div class="${cls}" ${onclick} title="${title}">
+          const cursorStyle=onclick?'cursor:pointer':'cursor:not-allowed';
+          return`<div class="${cls}" ${onclick} title="${title}" style="${cursorStyle}">
             <span class="lu-cap-rank">${cap.r}</span>
             <span class="lu-cap-name">${cap.nom}<span style="font-size:10px;color:var(--txt2);margin-left:6px">${cap.desc.slice(0,50)}${cap.desc.length>50?'…':''}</span></span>
             <span class="lu-cap-cost">${costTxt}</span>
