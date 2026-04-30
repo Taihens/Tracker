@@ -2086,6 +2086,36 @@ async function importCOFRules(){
     }
   }
 
+  // Crawler les sous-pages de règles
+  if(!_cofImportStopped){
+    const reglesIndexLabel='jeu/regles';
+    const reglesText=results.join('\n');
+    if(reglesText.includes(`=== ${reglesIndexLabel} ===`)){
+      const reglesLinks=[...new Set(reglesText.match(/\/fr\/jeu\/regles\/[a-z0-9\-\/]+/g)||[])];
+      const reglesUrls=reglesLinks.map(p=>`https://www.co-drs.org${p}`)
+        .filter(u=>!COF_PAGES.includes(u)); // évite les doublons avec pages déjà dans la liste
+      for(const rUrl of reglesUrls){
+        if(_cofImportStopped) break;
+        const rLabel=rUrl.split('/').slice(-2).join('/');
+        const marker=`=== ${rLabel} ===`;
+        const idx=(window._cofRulesText||'').indexOf(marker);
+        if(idx>=0){const ex=(window._cofRulesText||'').slice(idx+marker.length,idx+marker.length+800);if(!ex.includes('429')&&ex.trim().length>100) continue;}
+        if(status) status.innerHTML+=`<br>⏳ Règle : ${rLabel}`;
+        const rText=await fetchPage(rUrl);
+        if(rText){
+          results.push(`\n=== ${rLabel} ===\n${rText}`);
+          const full=results.join('\n');
+          window._cofRulesText=full;
+          localStorage.setItem('anathazer_cof_rules',full);
+          if(status) status.innerHTML+=` ✅`;
+        } else {
+          if(status) status.innerHTML+=` ❌`;
+        }
+        if(!_cofImportStopped) await new Promise(r=>setTimeout(r,3500));
+      }
+    }
+  }
+
   // Crawler les sous-pages de races si la page index a été importée
   if(!_cofImportStopped){
     const racesIndexLabel=COF_RACES_INDEX.split('/').slice(-2).join('/');
