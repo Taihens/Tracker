@@ -1843,6 +1843,15 @@ function setEtat(id,val){
   if(val!=='Normal')toast(`${c.name} — ${val}`,'t-w');
   checkDeath(c);
 }
+function updateCardPV(c){
+  const card=document.getElementById('card-'+c.id);
+  if(!card) return;
+  const hpEl=card.querySelector('.hp-cur');
+  if(hpEl){hpEl.textContent=c.pvActuel;hpEl.className='hp-cur '+hpClass(c);}
+  const barEl=card.querySelector('.bar-fill');
+  if(barEl){const pct=c.pvMax>0?Math.max(0,c.pvActuel/c.pvMax):0;barEl.style.width=(pct*100).toFixed(1)+'%';barEl.style.background=hpColor(c);}
+  if(c.pvActuel<=0)card.classList.add('ko'); else card.classList.remove('ko');
+}
 function applyDmg(id){
   const c=state.chars.find(x=>x.id===id);if(!c)return;
   const amt=parseInt(document.getElementById('dmg-'+id).value)||0;
@@ -1852,6 +1861,7 @@ function applyDmg(id){
   const avant=c.pvActuel;
   c.pvActuel=Math.max(0,c.pvActuel-amt);
   _localCombatTs=Date.now();
+  updateCardPV(c);
   if(c.pvActuel===0)c.etat='Inconscient';
   const entry={logId:Date.now()+Math.random(),charId:id,charName:c.name,ev:'Dégâts',val:amt,source:src,combat:document.getElementById('g-cname').value||'—',type,session:state.session,cbt:state.combat,rnd:state.round,pv:c.pvActuel,ts:Date.now()};
   state.log.push(entry);
@@ -1872,6 +1882,7 @@ function applyHeal(id){
   const avant=c.pvActuel;
   c.pvActuel=Math.min(c.pvMax,c.pvActuel+amt);
   _localCombatTs=Date.now();
+  updateCardPV(c);
   if(c.etat==='Inconscient'&&c.pvActuel>0)c.etat='Normal';
   const entry={logId:Date.now()+Math.random(),charId:id,charName:c.name,ev:'Soin',val:amt,source:src,combat:document.getElementById('g-cname').value||'—',type:'—',session:state.session,cbt:state.combat,rnd:state.round,pv:c.pvActuel,ts:Date.now()};
   state.log.push(entry);
