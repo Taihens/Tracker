@@ -642,7 +642,7 @@ tr:hover td{background:rgba(200,147,64,.03)}
 <nav id="main-nav">
   <button class="active" onclick="showTab('dashboard',this)">⚔ Tableau de Bord</button>
   <button onclick="showTab('dice',this)">🎲 Dés</button>
-  <button id="nav-roster" onclick="showTab('roster',this)">👥 Roster</button>
+  <button id="nav-roster" onclick="showTab('roster',this)" style="position:relative">👥 Roster<span id="newchar-badge" style="display:none;position:absolute;top:-4px;right:-4px;background:var(--blu2);color:#fff;font-size:8px;border-radius:50%;min-width:14px;height:14px;line-height:14px;text-align:center;font-family:monospace;padding:0 2px;animation:pulse 1s infinite">!</span></button>
   <button onclick="showTab('log',this)">📜 Journal</button>
   <button onclick="showTab('fiches',this)">📋 Fiches</button>
   <button onclick="showTab('etats',this)">⚠ États</button>
@@ -1637,6 +1637,7 @@ function setMode(mode){
     render();
     refreshActiveTab();
     setTimeout(checkPendingLvlUps, 300);
+    setTimeout(checkPendingChars, 300);
     if(_fbConnected) fbListenMessages();
   } else {
     badge.textContent='🧙 Joueur: '+(selectedPlayerChar?state.chars.find(c=>c.id===selectedPlayerChar)?.name||'?':'?');
@@ -2255,8 +2256,11 @@ async function fbListenPendingChars(){
 }
 function checkPendingChars(){
   const nb=Object.keys(pendingChars).length;
+  const show=nb>0&&appMode==='mj';
   const notif=document.getElementById('newchar-notif');
-  if(notif) notif.style.display=(nb>0&&appMode==='mj')?'inline-flex':'none';
+  if(notif) notif.style.display=show?'inline-flex':'none';
+  const badge=document.getElementById('newchar-badge');
+  if(badge){badge.style.display=show?'block':'none';badge.textContent=nb>9?'9+':String(nb);}
 }
 function renderPendingChars(){
   const overlay=document.getElementById('pending-chars-overlay');
