@@ -827,10 +827,21 @@ tr:hover td{background:rgba(200,147,64,.03)}
     <!-- INSTALLER L'APP -->
     <div class="settings-sec full" id="settings-install">
       <div class="ss-title">📲 Installer l'Application</div>
-      <div class="set-row">
-        <div><div class="set-label">Installer sur cet appareil</div><div class="set-desc" id="install-desc">Ajoute l'app sur l'écran d'accueil ou le bureau</div></div>
-        <button class="btn btn-g" id="install-btn" onclick="triggerInstall()" style="display:none">↓ Installer</button>
+      <div id="install-auto-row" class="set-row" style="display:none">
+        <div><div class="set-label">Installation automatique</div><div class="set-desc">Votre navigateur supporte l'installation directe</div></div>
+        <button class="btn btn-g" id="install-btn" onclick="triggerInstall()">↓ Installer</button>
         <span id="install-status" style="font-size:11px;color:var(--txt2)"></span>
+      </div>
+      <div id="install-manual" style="font-size:12px;color:var(--txt2);line-height:1.9">
+        <div style="margin-bottom:6px"><strong style="color:var(--wht)">Opera / Chrome / Edge (Windows)</strong><br>
+        Icône d'installation (⊕ ou écran) dans la barre d'adresse → "Installer"<br>
+        Ou : menu ☰ → <em>Plus d'outils</em> → <em>Créer un raccourci</em></div>
+        <div style="margin-bottom:6px"><strong style="color:var(--wht)">iPhone / iPad (Safari)</strong><br>
+        Bouton Partager <span style="font-size:14px">⎙</span> → <em>Sur l'écran d'accueil</em></div>
+        <div style="margin-bottom:6px"><strong style="color:var(--wht)">Android (Chrome)</strong><br>
+        Menu ⋮ → <em>Ajouter à l'écran d'accueil</em></div>
+        <div><strong style="color:var(--wht)">Firefox</strong><br>
+        Non supporté — utiliser Chrome ou Edge sur Windows.</div>
       </div>
     </div>
     <!-- THEMES -->
@@ -4773,8 +4784,8 @@ initFirebase().then(()=>{
 checkPendingLvlUps();
 checkPendingChars();
 if(window.matchMedia('(display-mode: standalone)').matches){
-  const st=document.getElementById('install-status');
-  if(st) st.textContent='✓ Application déjà installée sur cet appareil.';
+  const manual=document.getElementById('install-manual');
+  if(manual) manual.innerHTML='<strong style="color:var(--grn3)">✓ Application déjà installée sur cet appareil.</strong>';
 }
 
 // ── PWA INSTALL PROMPT ──
@@ -4782,17 +4793,19 @@ let _installPrompt=null;
 window.addEventListener('beforeinstallprompt',e=>{
   e.preventDefault();
   _installPrompt=e;
-  const btn=document.getElementById('install-btn');
-  const st=document.getElementById('install-status');
-  if(btn){btn.style.display='';}
-  if(st){st.textContent='';}
+  const row=document.getElementById('install-auto-row');
+  const manual=document.getElementById('install-manual');
+  if(row) row.style.display='';
+  if(manual) manual.style.display='none';
 });
 window.addEventListener('appinstalled',()=>{
   _installPrompt=null;
-  const btn=document.getElementById('install-btn');
+  const row=document.getElementById('install-auto-row');
+  const manual=document.getElementById('install-manual');
   const st=document.getElementById('install-status');
-  if(btn){btn.style.display='none';}
-  if(st){st.textContent='✓ Application installée !';}
+  if(row) row.style.display='none';
+  if(manual) manual.innerHTML='<strong style="color:var(--grn3)">✓ Application installée sur cet appareil.</strong>';
+  if(st) st.textContent='';
 });
 function triggerInstall(){
   if(!_installPrompt){
