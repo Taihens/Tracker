@@ -824,6 +824,15 @@ tr:hover td{background:rgba(200,147,64,.03)}
 
 <div id="tab-settings" class="tc">
   <div class="settings-grid">
+    <!-- INSTALLER L'APP -->
+    <div class="settings-sec full" id="settings-install">
+      <div class="ss-title">📲 Installer l'Application</div>
+      <div class="set-row">
+        <div><div class="set-label">Installer sur cet appareil</div><div class="set-desc" id="install-desc">Ajoute l'app sur l'écran d'accueil ou le bureau</div></div>
+        <button class="btn btn-g" id="install-btn" onclick="triggerInstall()" style="display:none">↓ Installer</button>
+        <span id="install-status" style="font-size:11px;color:var(--txt2)"></span>
+      </div>
+    </div>
     <!-- THEMES -->
     <div class="settings-sec full">
       <div class="ss-title">🎨 Thème Visuel</div>
@@ -4763,6 +4772,42 @@ initFirebase().then(()=>{
 });
 checkPendingLvlUps();
 checkPendingChars();
+if(window.matchMedia('(display-mode: standalone)').matches){
+  const st=document.getElementById('install-status');
+  if(st) st.textContent='✓ Application déjà installée sur cet appareil.';
+}
+
+// ── PWA INSTALL PROMPT ──
+let _installPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();
+  _installPrompt=e;
+  const btn=document.getElementById('install-btn');
+  const st=document.getElementById('install-status');
+  if(btn){btn.style.display='';}
+  if(st){st.textContent='';}
+});
+window.addEventListener('appinstalled',()=>{
+  _installPrompt=null;
+  const btn=document.getElementById('install-btn');
+  const st=document.getElementById('install-status');
+  if(btn){btn.style.display='none';}
+  if(st){st.textContent='✓ Application installée !';}
+});
+function triggerInstall(){
+  if(!_installPrompt){
+    document.getElementById('install-status').textContent='Installation non disponible sur ce navigateur (utilisez Chrome, Edge ou Opera).';
+    return;
+  }
+  _installPrompt.prompt();
+  _installPrompt.userChoice.then(r=>{
+    if(r.outcome==='accepted'){
+      document.getElementById('install-status').textContent='✓ Installation lancée !';
+      document.getElementById('install-btn').style.display='none';
+    }
+    _installPrompt=null;
+  });
+}
 
 // ── NETTOYAGE SW + AUTO-UPDATE ──
 if('serviceWorker' in navigator){
