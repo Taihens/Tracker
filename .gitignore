@@ -1,9 +1,20 @@
 node_modules/
 dist/
+coverage/
+
+# Env
 .env
 .env.local
 .env.*.local
 !.env.example
+
+# Vercel
 .vercel/
-coverage/
+
+# Handoff & exports (CLAUDE.md §3, §5)
+handoff/
+*.patch
+
+# Divers
 *.log
+.DS_Store

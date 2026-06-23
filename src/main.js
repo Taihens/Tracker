@@ -374,7 +374,7 @@ function loadState(){
     if(s&&s.chars){
       s.chars=s.chars.map(c=>{
         const def=DEFAULT_CHARS.find(d=>d.id===c.id)||{};
-        const merged={pmMax:0,pmActuel:0,pcMax:0,pcActuel:0,dv:'D6',attrs:{FOR:'—',DEX:'—',CON:'—',INT:'—',SAG:'—',CHA:'—'},raciales:[],voies:[],resume:[],...def,...c,attrs:{...(def.attrs||{}),...(c.attrs||{})}};
+        const merged={pmMax:0,pmActuel:0,pcMax:0,pcActuel:0,dv:'D6',raciales:[],voies:[],resume:[],...def,...c,attrs:{FOR:'—',DEX:'—',CON:'—',INT:'—',SAG:'—',CHA:'—',...(def.attrs||{}),...(c.attrs||{})}};
         // If saved char has empty or incomplete voies/armes/raciales/resume, restore from defaults
         if((!c.voies||c.voies.length===0||(def.voies&&c.voies.length<def.voies.length))&&def.voies&&def.voies.length>0) merged.voies=JSON.parse(JSON.stringify(def.voies));
         if((!c.armes||c.armes.length===0)&&def.armes&&def.armes.length>0) merged.armes=JSON.parse(JSON.stringify(def.armes));
@@ -391,11 +391,11 @@ function loadState(){
       if(!s.lvlUpHistory)s.lvlUpHistory={};
       return s;
     }
-  }catch(e){}
+  }catch(e){ /* SILENT-OK: localStorage corrompu → fallback DEFAULT_CHARS ci-dessous */ }
   return{chars:JSON.parse(JSON.stringify(DEFAULT_CHARS)),log:[],session:1,combat:1,round:1,etats:JSON.parse(JSON.stringify(ETATS_DEFAULT))};
 }
 function loadSettings(){
-  try{ const s=JSON.parse(localStorage.getItem('anathazer_settings')); if(s) settings={...settings,...s}; }catch(e){}
+  try{ const s=JSON.parse(localStorage.getItem('anathazer_settings')); if(s) settings={...settings,...s}; }catch(e){ /* SILENT-OK: settings corrompus → garde les defaults en mémoire */ }
 }
 function saveSettings(){
   settings.showPM=document.getElementById('tog-pm').checked;
@@ -784,12 +784,6 @@ function adjPC(id,d){
 function adjRound(d){state.round=Math.max(1,state.round+d);save();render();}
 
 // ── ACTIVE TURN ──
-function setActiveTurn(id){
-  state.activeTurn=state.activeTurn===id?null:id;
-  save();render();
-  if(state.activeTurn){const c=state.chars.find(x=>x.id===id);toast(`Tour de ${c.name}`,'t-i');}
-}
-
 // ── POINT DE RÉCUPÉRATION ──
 function pointRecup(){
   state.chars.filter(c=>c.present&&c.pvActuel>0&&c.pvActuel<c.pvMax).forEach(c=>{
@@ -947,7 +941,7 @@ async function importCOFRules(){
         try{
           const {getDatabase,ref,set}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
           await set(ref(getDatabase(firebaseApp),'cof_rules'),{text:partial,imported:Date.now(),pages:results.length,failed:failed.length});
-        }catch(e){}
+        }catch(e){ console.warn('Firebase set cof_rules (partiel):',e.message); }
       }
     }
     // Délai entre pages pour éviter le rate limiting (429)
@@ -970,7 +964,7 @@ async function importCOFRules(){
     const reglesIndexLabel='jeu/regles';
     const reglesText=results.join('\n');
     if(reglesText.includes(`=== ${reglesIndexLabel} ===`)){
-      const reglesLinks=[...new Set(reglesText.match(/\/fr\/jeu\/regles\/[a-z0-9\-\/]+/g)||[])];
+      const reglesLinks=[...new Set(reglesText.match(/\/fr\/jeu\/regles\/[a-z0-9/-]+/g)||[])];
       const reglesUrls=reglesLinks.map(p=>`https://www.co-drs.org${p}`)
         .filter(u=>!COF_PAGES.includes(u)); // évite les doublons avec pages déjà dans la liste
       for(const rUrl of reglesUrls){
@@ -1001,7 +995,7 @@ async function importCOFRules(){
     const racesText=results.find(r=>r.includes(`=== ${racesIndexLabel} ===`))||'';
     if(racesText){
       // Extraire les liens /fr/jeu/races/[slug] de la page index
-      const raceLinks=[...new Set(racesText.match(/\/fr\/jeu\/races\/[a-z0-9\-]+/g)||[])];
+      const raceLinks=[...new Set(racesText.match(/\/fr\/jeu\/races\/[a-z0-9-]+/g)||[])];
       const raceUrls=raceLinks.map(p=>`https://www.co-drs.org${p}`).filter(u=>u!==COF_RACES_INDEX);
       for(const raceUrl of raceUrls){
         if(_cofImportStopped) break;
@@ -1049,7 +1043,7 @@ async function retryCOFPages(){
         const text=(main?.textContent||'').replace(/\s+/g,' ').trim();
         if(text.length>200){newResults.push(`\n=== ${url.split('/').slice(-2).join('/')} ===\n${text}`);continue;}
       }
-    }catch(e){}
+    }catch(e){ console.warn('Retry fetch page COF échoué:',e.message); }
     // Still failed
   }
   const fullText=existing+newResults.join('\n');
@@ -1058,7 +1052,7 @@ async function retryCOFPages(){
     try{
       const {getDatabase,ref,set}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
       await set(ref(getDatabase(firebaseApp),'cof_rules'),{text:fullText,imported:Date.now(),pages:(existing.match(/===/g)||[]).length/2+newResults.length});
-    }catch(e){}
+    }catch(e){ console.warn('Firebase set cof_rules:',e.message); }
   }
   if(status) status.textContent=`✅ ${newResults.length} pages récupérées en plus — ${Math.round(fullText.length/1024)}ko total`;
   window._cofFailedPages=[];
@@ -1070,7 +1064,7 @@ async function clearCOFRules(){
   localStorage.removeItem('anathazer_cof_rules');
   if(firebaseDB&&_fbConnected){
     try{const {getDatabase,ref,remove}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
-    await remove(ref(getDatabase(firebaseApp),'cof_rules'));}catch(e){}
+    await remove(ref(getDatabase(firebaseApp),'cof_rules'));}catch(e){ console.warn('Firebase remove cof_rules:',e.message); }
   }
   const s=document.getElementById('cof-rules-status');
   if(s) s.textContent='Aucune règle importée.';
@@ -1089,7 +1083,7 @@ async function loadCOFRulesStatus(){
         s.textContent=`✅ Importées le ${new Date(d.imported).toLocaleDateString('fr-FR')} — ${Math.round((d.text||'').length/1024)}ko`;
         return;
       }
-    }catch(e){}
+    }catch(e){ console.warn('Firebase get cof_rules (statut):',e.message); }
   }
   const local=localStorage.getItem('anathazer_cof_rules');
   if(local){window._cofRulesText=local;s.textContent=`✅ Cache local — ${Math.round(local.length/1024)}ko`;}
@@ -1103,7 +1097,7 @@ async function getCOFRulesText(){
       const {getDatabase,ref,get}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
       const snap=await get(ref(getDatabase(firebaseApp),'cof_rules'));
       if(snap.exists()){window._cofRulesText=snap.val().text;return window._cofRulesText;}
-    }catch(e){}
+    }catch(e){ console.warn('Firebase get cof_rules:',e.message); }
   }
   const local=localStorage.getItem('anathazer_cof_rules');
   if(local){window._cofRulesText=local;return local;}
@@ -1112,13 +1106,13 @@ async function getCOFRulesText(){
 
 // ── PENDING CHARS ──
 let pendingChars={};
-try{const p=JSON.parse(localStorage.getItem('anathazer_pending_chars'));if(p)pendingChars=p;}catch(e){}
+try{const p=JSON.parse(localStorage.getItem('anathazer_pending_chars'));if(p)pendingChars=p;}catch(e){ /* SILENT-OK: cache local corrompu → pendingChars vide, resync Firebase */ }
 
 async function fbSavePendingChars(){
   localStorage.setItem('anathazer_pending_chars',JSON.stringify(pendingChars));
   if(!firebaseDB||!_fbConnected)return;
   try{const {getDatabase,ref,set}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
-  await set(ref(getDatabase(firebaseApp),'pendingChars'),pendingChars);}catch(e){}
+  await set(ref(getDatabase(firebaseApp),'pendingChars'),pendingChars);}catch(e){ console.warn('Firebase set pendingChars:',e.message); }
 }
 async function fbListenPendingChars(){
   if(!firebaseDB||!_fbConnected)return;
@@ -1129,7 +1123,7 @@ async function fbListenPendingChars(){
       localStorage.setItem('anathazer_pending_chars',JSON.stringify(pendingChars));
       checkPendingChars();
     });
-  }catch(e){}
+  }catch(e){ console.warn('Firebase listen pendingChars:',e.message); }
 }
 function checkPendingChars(){
   const nb=Object.keys(pendingChars).length;
@@ -2645,7 +2639,7 @@ let lvlUpCharId=null, lvlUpPage=0, lvlUpSelected=[], lvlUpPmGain=0;
 
 function parseMod(s){ const n=parseInt(String(s).replace(/[^0-9\-+]/g,'')); return isNaN(n)?0:n; }
 function dvMax(dv){ const m={'D4':4,'D6':6,'D8':8,'D10':10,'D12':12}; return m[String(dv).toUpperCase()]||6; }
-function parseAtt(s){ const n=parseInt(String(s).replace(/[^0-9\-]/g,'')); return isNaN(n)?0:n; }
+function parseAtt(s){ const n=parseInt(String(s).replace(/[^0-9-]/g,'')); return isNaN(n)?0:n; }
 function fmtAtt(n){ return n>=0?'+'+n:String(n); }
 function isPrestige(voieNom){ return /prestige/i.test(voieNom); }
 function capCost(rang, voieNom){
@@ -2719,7 +2713,7 @@ function getPmAttrPref(charId){
   try{const p=JSON.parse(localStorage.getItem('anathazer_pm_pref')||'{}');return p[charId]||null;}catch(e){return null;}
 }
 function setPmAttrPref(charId,attr){
-  try{const p=JSON.parse(localStorage.getItem('anathazer_pm_pref')||'{}');p[charId]=attr;localStorage.setItem('anathazer_pm_pref',JSON.stringify(p));}catch(e){}
+  try{const p=JSON.parse(localStorage.getItem('anathazer_pm_pref')||'{}');p[charId]=attr;localStorage.setItem('anathazer_pm_pref',JSON.stringify(p));}catch(e){ /* SILENT-OK: préférence PM non critique */ }
 }
 
 function buildLvlPage0(c){
@@ -2960,18 +2954,13 @@ document.addEventListener('keydown',e=>{
 });
 
 // ═══════════════════════════════════════════════════════════════
-//  CAP FULL TEXT MODAL
-// ═══════════════════════════════════════════════════════════════
-function closeCapFull(){document.getElementById('capfull-overlay').style.display='none';}
-
-// ═══════════════════════════════════════════════════════════════
 //  LVLUP PENDING (player → MJ approval)
 // ═══════════════════════════════════════════════════════════════
 let pendingLvlUps={};
 function closeLvlUpPending(){document.getElementById('lvlup-pending-overlay').style.display='none';}
 function checkPendingLvlUps(){
   // Read from Firebase listener (already in pendingLvlUps) + localStorage fallback
-  try{const p=JSON.parse(localStorage.getItem('anathazer_pending_lvlup'));if(p&&Object.keys(pendingLvlUps).length===0)pendingLvlUps={...p};}catch(e){}
+  try{const p=JSON.parse(localStorage.getItem('anathazer_pending_lvlup'));if(p&&Object.keys(pendingLvlUps).length===0)pendingLvlUps={...p};}catch(e){ /* SILENT-OK: cache local corrompu → garde l'état Firebase */ }
   const nb=Object.keys(pendingLvlUps).length;
   // Badge visible seulement côté MJ
   const notif=document.getElementById('lvlup-notif');
@@ -3210,12 +3199,12 @@ function buildAiContext(){
           v.caps.forEach(cap=>{
             const status=cap.ok?'✓':'○';
             let desc=cap.desc
-              .replace(/Mod[\. ]+d?'?INT/gi,`${intMod>=0?'+':''}${intMod}`)
-              .replace(/Mod[\. ]+d?'?SAG/gi,`${sagMod>=0?'+':''}${sagMod}`)
-              .replace(/Mod[\. ]+d?'?CHA/gi,`${chaMod>=0?'+':''}${chaMod}`)
-              .replace(/Mod[\. ]+d?'?FOR/gi,`${forMod>=0?'+':''}${forMod}`)
-              .replace(/Mod[\. ]+d?'?DEX/gi,`${dexMod>=0?'+':''}${dexMod}`)
-              .replace(/Mod[\. ]+d?'?CON/gi,`${conMod>=0?'+':''}${conMod}`);
+              .replace(/Mod[. ]+d?'?INT/gi,`${intMod>=0?'+':''}${intMod}`)
+              .replace(/Mod[. ]+d?'?SAG/gi,`${sagMod>=0?'+':''}${sagMod}`)
+              .replace(/Mod[. ]+d?'?CHA/gi,`${chaMod>=0?'+':''}${chaMod}`)
+              .replace(/Mod[. ]+d?'?FOR/gi,`${forMod>=0?'+':''}${forMod}`)
+              .replace(/Mod[. ]+d?'?DEX/gi,`${dexMod>=0?'+':''}${dexMod}`)
+              .replace(/Mod[. ]+d?'?CON/gi,`${conMod>=0?'+':''}${conMod}`);
             ctx+=`      ${cap.r} [${status}] ${cap.nom}: ${desc}\n`;
           });
         });
@@ -3625,7 +3614,7 @@ initHistory();
         if(editBtn)editBtn.style.display='none';
       }
     }
-  }catch(e){}
+  }catch(e){ /* SILENT-OK: init UI mode best-effort, render() suit */ }
 })();
 
 render();
