@@ -134,8 +134,9 @@ window.triggerInstall=triggerInstall;
 // ═══════════════════════════════════════════════════════════════
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){
-    ['modal-overlay','etat-modal','lvlup-overlay','capfull-overlay','lvlup-pending-overlay','repos-overlay','pending-chars-overlay'].forEach(id=>{const el=document.getElementById(id);if(el&&(el.style.display==='block'||el.style.display==='flex')){el.style.display='none';document.body.style.overflow='';}});
-    ['mode-overlay','char-select-overlay','death-overlay'].forEach(id=>{const el=document.getElementById(id);if(el){el.classList.remove('show');}});
+    ['modal-overlay','etat-modal','capfull-overlay','lvlup-pending-overlay','repos-overlay','pending-chars-overlay'].forEach(id=>{const el=document.getElementById(id);if(el&&(el.style.display==='block'||el.style.display==='flex')){el.style.display='none';document.body.style.overflow='';}});
+    // lvlup-overlay s'ouvre via classList('show') (et non style.display) → groupe classList
+    ['mode-overlay','char-select-overlay','death-overlay','lvlup-overlay'].forEach(id=>{const el=document.getElementById(id);if(el){el.classList.remove('show');}});
   }
 });
 

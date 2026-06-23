@@ -117,10 +117,11 @@ export function saveEdit(){
   editData.pmActuel=Math.min(editData.pmActuel,editData.pmMax);
   editData.pcActuel=Math.min(editData.pcActuel,editData.pcMax);
   state.chars[idx]=editData;
+  const savedName=editData.name; // capturer avant closeModal() qui remet editData à null
   save();window.render();
   if(document.getElementById('tab-fiches').classList.contains('active'))renderFiche();
   if(document.getElementById('tab-roster').classList.contains('active'))window.renderRoster();
   closeModal();
   if(window._postEditCb){window._postEditCb();}
-  window.toast(`${editData.name} — sauvegardé`,'t-i');
+  window.toast(`${savedName} — sauvegardé`,'t-i');
 }
