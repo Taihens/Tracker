@@ -50,7 +50,7 @@ PWA TTRPG (Chroniques Oubliées Fantasy) — suivi de combat MJ/Joueurs, dés, f
 - **Tests dés** (formules de jets, historique)
 - **Tests state / storage** (sauvegarde, chargement, migrations et abstraction localStorage)
 
-### 📋 Lot 05 — Fonctionnalités [À DÉFINIR PAR GÉMI]
+### 📋 Lot 04 — Fonctionnalités [À DÉFINIR PAR GÉMI]
 - TBD selon besoins de la campagne
 
 ---
