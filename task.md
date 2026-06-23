@@ -34,5 +34,26 @@
 
 ---
 
-## Lot suivant : Lot 02 — Découpage src/main.js
-> En attente de planification Gémi (mail envoyé : `agent_messages/to_gemini/2026-06-23_refactoring-complet.md`).
+## Lot en cours : Lot 02 — Refactoring modulaire & Qualité
+
+### Tâches
+- [ ] Créer `src/modules/constants.js`
+- [ ] Créer `src/modules/cof-classes.js`
+- [ ] Créer `src/modules/storage.js` (abstraction localStorage)
+- [ ] Créer `src/modules/state.js` (gestion d'état unique, indexation par ID)
+- [ ] Créer `src/modules/firebase.js` (synchro Firebase, imports statiques)
+- [ ] Créer `src/modules/dice.js` (jets de dés)
+- [ ] Créer `src/modules/combat.js` (logique combat pure)
+- [ ] Créer `src/modules/messages.js` (messagerie et logs de combat)
+- [ ] Créer `src/modules/fiches.js` (fiche personnage et wizard)
+- [ ] Créer `src/modules/roster.js` (ordre d'initiative et roster)
+- [ ] Créer `src/modules/recap.js` (statistiques et recap)
+- [ ] Créer `src/modules/ui.js` (liaisons DOM et re-rendus ciblés)
+- [ ] Refactorer `src/main.js` pour orchestrer les modules (inférieur à 400 lignes)
+- [ ] Bumper version `CACHE` dans `public/sw.js` (R1)
+- [ ] Valider localement : lint + build + smoke tests au vert
+
+---
+
+## Lot suivant : Lot 04 — Tests unitaires
+> À démarrer une fois le refactoring modulaire du Lot 02 validé. Priorité sur la logique de combat.
