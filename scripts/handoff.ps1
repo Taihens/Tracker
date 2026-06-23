@@ -58,9 +58,11 @@ $commitCount = (git rev-list --count "$Base..HEAD").Trim()
 Write-Host "-> Handoff $slug (branche $branch vs $Base)" -ForegroundColor Cyan
 
 # --- Artefacts git ---
-git diff "$Base...HEAD"            | Out-File -Encoding utf8 (Join-Path $outDir 'git_diff.patch')
-git status                          | Out-File -Encoding utf8 (Join-Path $outDir 'git_status.txt')
-git diff --name-only "$Base...HEAD" | Out-File -Encoding utf8 (Join-Path $outDir 'files_changed.txt')
+# Diff vs $Base SANS HEAD : capture l'arbre de travail complet (commits + modifs
+# NON commitees). Indispensable pour un handoff pris avant le commit du lot.
+git diff "$Base"             | Out-File -Encoding utf8 (Join-Path $outDir 'git_diff.patch')
+git status                   | Out-File -Encoding utf8 (Join-Path $outDir 'git_status.txt')
+git diff --name-only "$Base" | Out-File -Encoding utf8 (Join-Path $outDir 'files_changed.txt')
 
 # --- Tests (non bloquant) ---
 # La redirection 2>&1 est traitee par cmd.exe (a l'interieur des guillemets),
