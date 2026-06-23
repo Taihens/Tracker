@@ -25,10 +25,10 @@ PWA TTRPG (Chroniques Oubliées Fantasy) — suivi de combat MJ/Joueurs, dés, f
 - Variables Firebase configurées (GitHub secrets pour le build + env Vercel prod/preview)
 - Workflow simplifié : gate qualité lint/test/build uniquement (jobs deploy custom retirés — l'action `amondnet/vercel-action@v25` épinglait un CLI obsolète et faisait doublon avec l'intégration native)
 
-### 🔄 Lot 02a — Déplacement modulaire pur [EN COURS]
+### ✅ Lot 02a — Déplacement modulaire pur [CLOTURÉ]
 **Objectif** : Découper le monolithe `src/main.js` en modules ES6 (moins de 400 lignes chacun, R5) sans aucun changement de comportement ni de logique métier.
-- **Livré** : `src/main.js` 3678 → 210 lignes ; 29 fichiers sous `src/modules/` (tous <400 l) ; `bindings.js` (expose les fonctions inline sur `window` + 3 getters live). lint 0 err · build OK (32 modules) · smoke 3/3. R1 fait (CACHE v6→v7).
-- **Reste** : validation navigateur manuelle (Taihens) — aucun filet de test comportemental avant Lot 02b.
+- **Livré** : `src/main.js` 3678 → 210 lignes ; 29 fichiers sous `src/modules/` (tous <400 l) ; `bindings.js` (expose les fonctions inline sur `window` + 3 getters live). lint 0 err · build OK (32 modules) · smoke 3/3. R1 fait (CACHE v6→v7). Commit refonte `0652177`.
+- **Validation navigateur (Taihens)** : ✅ OK. 2 anomalies trouvées (saveEdit, Escape) prouvées **pré-existantes** (byte-identiques au monolithe) → refonte iso-fonctionnelle confirmée ; corrigées en bonus (commit `487c005`). Handoff `handoff02_lot02a-modularisation.zip` regénéré sur l'état validé.
 - **Modules cibles** : `constants.js`, `cof-classes.js`, `storage.js`, `state.js`, `firebase.js`, `dice.js`, `combat.js`, `messages.js`, `fiches.js`, `roster.js`, `recap.js`, `ui.js`.
 - **Sens des dépendances imposé** :
   - `constants.js` / `cof-classes.js` (feuilles) -> `storage.js` -> `state.js` / `firebase.js` -> modules métiers (`dice.js`, `combat.js`, `messages.js`, `fiches.js`, `roster.js`, `recap.js`) -> `ui.js` -> `main.js`.

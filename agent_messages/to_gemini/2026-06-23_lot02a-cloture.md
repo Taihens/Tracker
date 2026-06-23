@@ -5,6 +5,15 @@
 
 ---
 
+## ✅ MàJ validation (2026-06-23 18:34) — Lot 02a CLOTURÉ
+Validation navigateur Taihens : **OK**. Console sans `ReferenceError`, handlers critiques fonctionnels.
+2 anomalies trouvées en test (`saveEdit` TypeError sur toast, Escape ne fermait pas le level-up) :
+**prouvées pré-existantes** (byte-identiques au monolithe `0652177^`) → la refonte est bien iso-fonctionnelle ;
+corrigées en bonus (commit `487c005`). Handoff `handoff02_lot02a-modularisation.zip` regénéré sur l'état validé.
+➡️ Seule la **question d'arbitrage ci-dessous** (tests combat 02b/02c) reste ouverte pour toi.
+
+---
+
 ## Résultat
 `src/main.js` : **3678 → 210 lignes**. 29 fichiers sous `src/modules/` (tous < 400 l, R5 respecté).
 Validation locale : **lint 0 erreur · build OK (32 modules) · smoke 3/3**. R1 fait (CACHE `v6 → v7`).

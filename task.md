@@ -34,7 +34,7 @@
 
 ---
 
-## Lot en cours : Lot 02a — Déplacement modulaire pur
+## Lot précédent : Lot 02a — Déplacement modulaire pur [CLOTURÉ]
 
 ### Tâches
 - [x] Déplacer les constantes et magic strings → `src/modules/constants.js` (+ `constants/default-chars.js`)
@@ -52,7 +52,7 @@
 - [x] Refactorer `src/main.js` pour importer et orchestrer les modules (210 lignes, R5)
 - [x] Bumper la version `CACHE` dans `public/sw.js` v6 → v7 (R1)
 - [x] Valider localement : lint 0 err · build OK (32 modules) · smoke 3/3 (iso-fonctionnalité stricte)
-- [ ] ⚠️ Validation navigateur manuelle (console sans ReferenceError, handlers critiques)
+- [x] ⚠️ Validation navigateur manuelle (Taihens) : console sans ReferenceError, handlers critiques OK. 2 anomalies (saveEdit, Escape) prouvées pré-existantes → corrigées en bonus (commit `487c005`). Handoff regénéré sur l'état validé.
 
 ### Divergences vs liste architecte (organisationnel, esprit du scope — signalé en mailbox)
 - Ajout de modules hors liste pour respecter R5 (<400 l) : `levelup.js` (+`levelup/wizard.js`, `levelup/pending.js`), `assistant.js` (+`assistant/gemini.js`, `assistant/cof-import.js`), `bindings.js`.
