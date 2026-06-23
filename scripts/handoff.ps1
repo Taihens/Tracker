@@ -55,7 +55,7 @@ $branch = (git rev-parse --abbrev-ref HEAD).Trim()
 $stamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
 $commitCount = (git rev-list --count "$Base..HEAD").Trim()
 
-Write-Host "→ Handoff $slug (branche $branch vs $Base)" -ForegroundColor Cyan
+Write-Host "-> Handoff $slug (branche $branch vs $Base)" -ForegroundColor Cyan
 
 # --- Artefacts git ---
 git diff "$Base...HEAD"            | Out-File -Encoding utf8 (Join-Path $outDir 'git_diff.patch')
@@ -63,23 +63,23 @@ git status                          | Out-File -Encoding utf8 (Join-Path $outDir
 git diff --name-only "$Base...HEAD" | Out-File -Encoding utf8 (Join-Path $outDir 'files_changed.txt')
 
 # --- Tests (non bloquant) ---
-# La redirection 2>&1 est traitée par cmd.exe (à l'intérieur des guillemets),
-# donc PowerShell ne wrappe pas la sortie en NativeCommandError (piège PS 5.1).
-Write-Host '→ npm test' -ForegroundColor Cyan
+# La redirection 2>&1 est traitee par cmd.exe (a l'interieur des guillemets),
+# donc PowerShell ne wrappe pas la sortie en NativeCommandError (piege PS 5.1).
+Write-Host '-> npm test' -ForegroundColor Cyan
 cmd /c "npm test 2>&1" | Out-File -Encoding utf8 (Join-Path $outDir 'test_results.txt')
 $testExit = $LASTEXITCODE
 
 # --- Build (non bloquant) ---
-Write-Host '→ npm run build' -ForegroundColor Cyan
+Write-Host '-> npm run build' -ForegroundColor Cyan
 cmd /c "npm run build 2>&1" | Out-File -Encoding utf8 (Join-Path $outDir 'build_log.txt')
 $buildExit = $LASTEXITCODE
 
-# --- Résumé ---
-$testStatus = if ($testExit -eq 0) { '✅ vert' } else { "❌ échec (exit $testExit)" }
-$buildStatus = if ($buildExit -eq 0) { '✅ OK' } else { "❌ échec (exit $buildExit)" }
+# --- Resume ---
+$testStatus = if ($testExit -eq 0) { '[OK] vert' } else { "[ERR] echec (exit $testExit)" }
+$buildStatus = if ($buildExit -eq 0) { '[OK] OK' } else { "[ERR] echec (exit $buildExit)" }
 
 $summary = @"
-# Handoff $num — $Nom
+# Handoff $num - $Nom
 
 - **Branche** : $branch
 - **Base de comparaison** : $Base
@@ -89,11 +89,11 @@ $summary = @"
 - **Build** : $buildStatus
 
 ## Contenu
-- git_diff.patch — diff complet vs $Base
-- git_status.txt — état de l'arbre
-- files_changed.txt — fichiers modifiés
-- test_results.txt — sortie npm test
-- build_log.txt — sortie npm run build
+- git_diff.patch - diff complet vs $Base
+- git_status.txt - etat de l'arbre
+- files_changed.txt - fichiers modifies
+- test_results.txt - sortie npm test
+- build_log.txt - sortie npm run build
 "@
 $summary | Out-File -Encoding utf8 (Join-Path $outDir 'SUMMARY.md')
 
@@ -101,8 +101,8 @@ $summary | Out-File -Encoding utf8 (Join-Path $outDir 'SUMMARY.md')
 Compress-Archive -Path "$outDir\*" -DestinationPath $zipPath -Force
 
 Write-Host ''
-Write-Host "✅ Handoff généré : handoff\$slug.zip" -ForegroundColor Green
+Write-Host "[OK] Handoff genere : handoff\$slug.zip" -ForegroundColor Green
 Write-Host "   Tests : $testStatus  |  Build : $buildStatus"
 if ($testExit -ne 0 -or $buildExit -ne 0) {
-  Write-Host '⚠️  Tests ou build en échec — vérifie test_results.txt / build_log.txt avant de clôturer le lot.' -ForegroundColor Yellow
+  Write-Host '[WARN] Tests ou build en echec - verifie test_results.txt / build_log.txt avant de cloturer le lot.' -ForegroundColor Yellow
 }
