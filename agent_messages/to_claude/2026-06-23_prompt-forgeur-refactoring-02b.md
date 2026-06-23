@@ -43,6 +43,8 @@ Les tests doivent s'assurer que les fonctions de combat mettent à jour l'état 
 ## Contraintes et Règles
 * **Aucun import de UI** : Les tests doivent importer uniquement `src/modules/combat.js` et manipuler un objet `state` simulé en mémoire. `ui.js` ne doit jamais être impliqué.
 * **Iso-fonctionnalité stricte** : Si vous découvrez un bug historique ou un comportement étrange lors de l'écriture des tests, **ne le corrigez pas** tout de suite. Écrivez le test pour valider le comportement actuel (caractérisation), commentez le test avec un tag `// TODO: bug historique`, et signalez-le dans le rapport de handoff. Les corrections logiques se feront au Lot 02c.
+* **Choix de Mocking (Arbitrage) :**
+  Puisque le module `combat.js` appelle actuellement des fonctions globales d'effets de bord (`window.render()`, `window.toast()`, etc.), nous choisissons l'option **(a) Stubber `window.*` dans le harnais de test**. Dans tes tests Vitest, stubbe ces appels (ex: `vi.stubGlobal('render', vi.fn())`) plutôt que de modifier le code de `combat.js` à cette étape. L'isolation et le nettoyage propre de ces effets de bord UI seront réalisés durant la phase d'optimisation (Lot 02c).
 
 ## Validation
 * Lancer la commande `npm test`.
