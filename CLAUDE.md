@@ -42,7 +42,7 @@ Quand le user fournit une analyse externe (ChatGPT, autre IA) : agir comme exéc
 * **Jamais le tool Bash** — PowerShell + tools dédiés uniquement.
 * **Node 24 / npm 11**.
 
-## 10. Règles Anti-Régression (R1-R9) — permanentes
+## 10. Règles Anti-Régression (R1-R10) — permanentes
 
 **R1 — Cache versioning** : toute modif structure JS/CSS servie → bumper `CACHE` dans `public/sw.js`. Format : `anathazerín-vN`.
 
@@ -61,6 +61,13 @@ Quand le user fournit une analyse externe (ChatGPT, autre IA) : agir comme exéc
 **R8 — Preuve par le code** : findings sans numéro de ligne → rétrogradés info. Forgeur lit la ligne citée avant de corriger.
 
 **R9 — Backticks dans template literals** : chaînes multi-lignes dans JS via backticks → backticks internes échappés (\`).
+
+**R10 — Spec Architecte ancrée dans le code** : tout prompt Forgeur (livrable §4) doit être vérifié contre le code avant émission. Trois exigences :
+* **Ancrage ou hypothèse** : toute affirmation sur le comportement d'une fonction cite un `fichier:ligne`, OU est taguée `[HYPOTHÈSE À CARACTÉRISER]`. Pas de comportement décrit sans l'une des deux. (Lire/citer le code ≠ écrire du code — l'Architecte a le droit de lire pour scoper juste.)
+* **Contrat par fonction** : pour chaque fonction visée, un tableau vérifié — `Fonction | Entrées réelles (params ET/OU IDs DOM lus) | Effets de bord (window.*, imports) | Mutation state | fichier:ligne`. Pas de prose à la place du tableau.
+* **Dépendances à mocker** : lister les imports ES statiques (lus dans le bloc `import {}` du module) avec le chemin exact tel que le test devra l'écrire (relatif au fichier de test, ex. `../src/modules/firebase.js` — pas `./firebase.js`).
+
+Spec non conforme = renvoyée à l'Architecte avant tout code (mailbox §12). Le Forgeur applique R8 en miroir : il relit chaque ligne citée avant d'implémenter.
 
 ## 11. Pipeline CI/CD
 * Déclenché automatiquement : PR → preview Vercel · merge main → prod Vercel.

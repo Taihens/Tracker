@@ -63,8 +63,18 @@
 
 ---
 
-## Lot suivant : Lot 02b — Tests de caractérisation (Combat)
-> À exécuter immédiatement après la validation du Lot 02a pour garantir la non-régression du module critique de combat.
+## Lot précédent : Lot 02b — Tests de caractérisation (Combat) [CLOTURÉ]
+> Filet de sécurité de non-régression sur `src/modules/combat.js` avant les optimisations du Lot 02c.
+
+### Tâches
+- [x] Créer `tests/combat.test.js` (Vitest + happy-dom)
+- [x] Harnais de mocks isolant : `state.js`, `firebase.js` (coupe la chaîne CDN/`import.meta.env`), `cof-classes.js`, `constants.js` + stubs `window.*` UI
+- [x] Caractériser les 18 fonctions exportées (hpClass/hpColor, setDmgType, setEtat, updateCardPV, applyDmg/applyHeal, adjPM/recupPM/adjPC, adjRound, pointRecup, endRound/endCombat/endSession, resetAll/reposComplet/confirmReposComplet, setActiveTurn)
+- [x] Déterminisme : stub `Math.random`/`Date.now` ; fake timers pour l'animation `healing` (900ms)
+- [x] 3 bugs historiques tagués `// TODO: bug historique` (NON corrigés — réservés 02c) : crash DOM non gardé `applyDmg` (combat.js:44), collision `logId` (combat.js:52), `gain` NaN si `niveau` absent (combat.js:117)
+- [x] Audit adversarial (2 agents) post-vert → branches/effets de bord complétés
+- [x] Validation : `npm test` → **69/69 verts** (66 combat + 3 smoke)
+- [x] ⚠️ R5 à arbitrer : `tests/combat.test.js` = 592 lignes (> 400). Arbitrage : Fichier cohésif utilisant un harnais de mock partagé complexe. Accepté exceptionnellement pour éviter la duplication inutile du harnais de test.
 
 ---
 
