@@ -11,10 +11,20 @@
 
 Audit complet de `src/main.js` réalisé (3689 lignes, monolithe). Taihens a décidé de tout refactorer avant d'ajouter de nouvelles features. Le Lot 02 en cours de planification ne couvre que le découpage en modules — l'audit révèle des problèmes supplémentaires qui méritent d'être intégrés dans le scope global.
 
+## ⚠️ Déjà corrigé dans la PR #1 (à NE PAS replanifier)
+
+Pendant la remédiation du pipeline CI, ces points sont **déjà traités** sur la branche `feat/refonte-vite` :
+- Doublons de fonctions `closeCapFull()` et `setActiveTurn()` → supprimés (une seule occurrence chacune)
+- 4 fichiers racine redondants (`sw.js`, `manifest.json`, `icon-192/512.png`) → supprimés (copies de `/public/`)
+- 9 échappements regex inutiles → nettoyés
+- 14 blocs `catch` vides → `console.warn` (R3) ou `// SILENT-OK`
+- Clé `attrs` dupliquée au `loadState` → fusion des sources
+
+Les findings ci-dessous sont ceux qui **restent à planifier**.
+
 ## Ce que l'audit a trouvé (au-delà du Lot 02)
 
 **Critique**
-- Doublon de fonction `closeCapFull()` (lignes 1835 et 2965)
 - Imports Firebase dynamiques à chaque sync (lignes 55-59) au lieu d'imports statiques
 - 251 appels `document.getElementById()` couplant logique métier et DOM
 
@@ -29,10 +39,6 @@ Audit complet de `src/main.js` réalisé (3689 lignes, monolithe). Taihens a dé
 - Magic strings partout (`'anathazer_v4'` x5, `'tab-'` x20+, `'char-'` x30+)
 - Incohérence d'API interne (certaines fonctions prennent ID, d'autres objet, d'autres élément DOM)
 - Callback hell dans l'IA Gemini (`.then().then()` au lieu d'async/await)
-
-**Fichiers redondants**
-- `/sw.js` en double avec `/public/sw.js` — le root est inutile (Vite gère `/public/`)
-- `/manifest.json` en double avec `/public/manifest.json`
 
 **Tests**
 - Couverture estimée < 5% (32 lignes de smoke tests)

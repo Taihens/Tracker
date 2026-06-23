@@ -16,8 +16,8 @@
 ### À faire avant merge main
 - [x] Configurer Vercel (lier repo Tracker) — projet `anathazer-tracker`
 - [x] Ajouter secrets GitHub Actions (VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID, VITE_FIREBASE_*) + env Vercel (prod+preview)
-- [ ] Ouvrir PR feat/refonte-vite → main
-- [ ] Valider pipeline (CI vert + deploy preview)
+- [x] Ouvrir PR feat/refonte-vite → main
+- [x] Valider pipeline (CI vert + deploy preview)
 
 ### Remédiation pipeline (le Lot 01 était [CLOTURÉ] mais CI jamais vert)
 - [x] `package-lock.json` non tracké → ajouté (requis par `npm ci`)
