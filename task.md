@@ -34,29 +34,45 @@
 
 ---
 
-## Lot en cours : Lot 02a — Déplacement modulaire pur
+## Lot 02a — Déplacement modulaire pur [CLOTURÉ]
 
 ### Tâches
-- [ ] Déplacer les constantes et magic strings → `src/modules/constants.js`
-- [ ] Déplacer les classes COF → `src/modules/cof-classes.js`
-- [ ] Créer `src/modules/storage.js` (abstraction `localStorage` pure, sans modif logique)
-- [ ] Déplacer la logique d'état sans modif (variables globales regroupées de manière minimale) → `src/modules/state.js`
-- [ ] Déplacer la logique Firebase → `src/modules/firebase.js`
-- [ ] Déplacer la logique de dés → `src/modules/dice.js`
-- [ ] Déplacer la logique de combat pure → `src/modules/combat.js`
-- [ ] Déplacer la logique de messagerie et logs → `src/modules/messages.js`
-- [ ] Déplacer la logique de fiches → `src/modules/fiches.js`
-- [ ] Déplacer la logique de roster/initiative → `src/modules/roster.js`
-- [ ] Déplacer la logique de recap → `src/modules/recap.js`
-- [ ] Déplacer la logique UI & DOM → `src/modules/ui.js` (sous-découper si >400 lignes)
-- [ ] Refactorer `src/main.js` pour importer et orchestrer les modules (<400 lignes, R5)
-- [ ] Bumper la version `CACHE` dans `public/sw.js` (R1)
-- [ ] Valider localement : lint + build + smoke tests au vert (iso-fonctionnalité stricte)
+- [x] Déplacer les constantes et magic strings → `src/modules/constants.js` (+ `constants/default-chars.js`)
+- [x] Déplacer les classes COF → `src/modules/cof-classes.js`
+- [x] Créer `src/modules/storage.js` (abstraction `localStorage` pure, sans modif logique)
+- [x] Déplacer la logique d'état sans modif (globals + setters live-binding) → `src/modules/state.js`
+- [x] Déplacer la logique Firebase → `src/modules/firebase.js`
+- [x] Déplacer la logique de dés → `src/modules/dice.js`
+- [x] Déplacer la logique de combat pure → `src/modules/combat.js`
+- [x] Déplacer la logique de messagerie et logs → `src/modules/messages.js`
+- [x] Déplacer la logique de fiches → `src/modules/fiches.js` (barrel) + `fiches/render.js` + `fiches/wizard.js` + `fiches/edit.js`
+- [x] Déplacer la logique de roster/pending chars/mdp → `src/modules/roster.js`
+- [x] Déplacer la logique de recap → `src/modules/recap.js`
+- [x] Déplacer la logique UI & DOM → `src/modules/ui/` (render, tabs, modals, settings, etats, mode, toast)
+- [x] Refactorer `src/main.js` pour importer et orchestrer les modules (210 lignes, R5)
+- [x] Bumper la version `CACHE` dans `public/sw.js` v6 → v7 (R1)
+- [x] Valider localement : lint 0 err · build OK (32 modules) · smoke 3/3 (iso-fonctionnalité stricte)
+
+### Divergences vs liste architecte (organisationnel, esprit du scope — signalé en mailbox)
+- Ajout de modules hors liste pour respecter R5 (<400 l) : `levelup.js` (+`levelup/wizard.js`, `levelup/pending.js`), `assistant.js` (+`assistant/gemini.js`, `assistant/cof-import.js`), `bindings.js`.
+- **Finding window-binding** : `index.html` + template strings appellent ~123 fonctions par nom global → `bindings.js` les expose sur `window` (fonctions exportées) + 3 getters live (`appMode`, `charWizard`, `editData`, réassignées au runtime).
+- **Bug évité (stale-binding)** : `pendingChars`/`pendingLvlUps` réassignés sur sync Firebase → import ES direct (live) au lieu de `window.x` (snapshot obsolète) dans `fiches/wizard.js` et `ui/render.js`.
+- Helpers `fb*` co-localisés dans leur module métier plutôt qu'un `firebase.js` monolithique.
+- Vérif statique anti-bouton-mort : 123 cibles inline + 32 `window.*` toutes couvertes (0 référence morte).
+- ⚠️ Reste : **validation navigateur manuelle par Taihens** (console sans `ReferenceError`, handlers critiques) — non automatisable.
 
 ---
 
-## Lot suivant : Lot 02b — Tests de caractérisation (Combat)
-> À exécuter immédiatement après le Lot 02a pour garantir la non-régression du module critique de combat.
+## Lot en cours : Lot 02b — Tests de caractérisation (Combat)
+
+### Tâches
+- [ ] Créer `tests/combat.test.js`
+- [ ] Écrire les tests pour `applyDmg` (PV, inconscience, mort, valeurs invalides)
+- [ ] Écrire les tests pour `applyHeal` (PV max, retour de l'inconscience, soins sur mort)
+- [ ] Écrire les tests pour la gestion et les limites des ressources (PM et PC)
+- [ ] Écrire les tests pour l'application, le cumul et le nettoyage des états
+- [ ] Valider localement via `npm test` (vitest)
+- [ ] S'assurer que le linter et le build sont toujours au vert
 
 ---
 
