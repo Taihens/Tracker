@@ -36,7 +36,7 @@ PWA TTRPG (Chroniques Oubliées Fantasy) — suivi de combat MJ/Joueurs, dés, f
 - **Sous-découpage R5** : Si un module (comme `ui.js` ou `combat.js`) menace de dépasser 400 lignes, le sous-découper immédiatement (ex: `src/modules/ui/events.js`, etc.).
 - **Validation** : Strictement iso-fonctionnel. L'application doit fonctionner à l'identique.
 
-### 📋 Lot 02b — Tests de caractérisation (Combat) [PLANIFIÉ]
+### 🔄 Lot 02b — Tests de caractérisation (Combat) [EN COURS]
 **Objectif** : Mettre en place un filet de sécurité de tests automatisés avant toute optimisation du comportement.
 - **Couverture prioritaire** : tests unitaires complets sur la logique de combat du module `src/modules/combat.js` (calculs de dégâts, soins, PV/PM/PC, gestion des états).
 
