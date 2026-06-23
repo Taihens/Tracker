@@ -35,10 +35,11 @@ Modules cibles :
 - `src/modules/constants.js` (~350 lignes)
 - `src/modules/cof-classes.js` (~400 lignes)
 
-### 📋 Lot 03 — Configuration Vercel + Secrets [PLANIFIÉ]
-- Lier repo Tracker au dashboard Vercel
-- Configurer secrets GitHub Actions
-- Valider premier déploiement automatique
+### ✅ Lot 03 — Configuration Vercel + Secrets [CLOTURÉ]
+- Repo lié au projet Vercel `anathazer-tracker`
+- Déploiement via **intégration GitHub native Vercel** (PR → preview · main → prod)
+- Variables Firebase configurées (GitHub secrets pour le build + env Vercel prod/preview)
+- Workflow simplifié : gate qualité lint/test/build uniquement (jobs deploy custom retirés — l'action `amondnet/vercel-action@v25` épinglait un CLI obsolète et faisait doublon avec l'intégration native)
 
 ### 📋 Lot 04 — Tests unitaires [PLANIFIÉ]
 - Tests combat (dmg, heal, PM, PC)
