@@ -55,15 +55,15 @@
 
 ---
 
-## Lot suivant : Lot 04a — Tests de caractérisation (Combat)
+## Lot suivant : Lot 02b — Tests de caractérisation (Combat)
 > À exécuter immédiatement après le Lot 02a pour garantir la non-régression du module critique de combat.
 
 ---
 
-## Lot suivant : Lot 02b — Optimisations & Améliorations
+## Lot suivant : Lot 02c — Optimisations & Améliorations
 > Optimisation de l'état (indexation ID O(1)), async/await IA Gemini, imports statiques Firebase, re-rendus ciblés.
 
 ---
 
-## Lot suivant : Lot 04 — Tests unitaires
-> À démarrer une fois le refactoring modulaire du Lot 02 validé. Priorité sur la logique de combat.
+## Lot suivant : Lot 02d — Reste des tests unitaires
+> Tests unitaires restants (dés, stockage et état) après finalisation des optimisations.

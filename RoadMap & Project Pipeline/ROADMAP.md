@@ -19,6 +19,11 @@ PWA TTRPG (Chroniques Oubliées Fantasy) — suivi de combat MJ/Joueurs, dés, f
 - Vite 6, ESLint 9, Prettier, Vitest
 - `.github/workflows/ci-cd.yml` : lint → test → build → deploy Vercel
 - Workflow Antigravity : CLAUDE.md, ROADMAP, task.md, mailbox
+### ✅ Lot 03 — Configuration Vercel + Secrets [CLOTURÉ]
+- Repo lié au projet Vercel `anathazer-tracker`
+- Déploiement via **intégration GitHub native Vercel** (PR → preview · main → prod)
+- Variables Firebase configurées (GitHub secrets pour le build + env Vercel prod/preview)
+- Workflow simplifié : gate qualité lint/test/build uniquement (jobs deploy custom retirés — l'action `amondnet/vercel-action@v25` épinglait un CLI obsolète et faisait doublon avec l'intégration native)
 
 ### 🔄 Lot 02a — Déplacement modulaire pur [EN COURS]
 **Objectif** : Découper le monolithe `src/main.js` en modules ES6 (moins de 400 lignes chacun, R5) sans aucun changement de comportement ni de logique métier.
@@ -29,17 +34,11 @@ PWA TTRPG (Chroniques Oubliées Fantasy) — suivi de combat MJ/Joueurs, dés, f
 - **Sous-découpage R5** : Si un module (comme `ui.js` ou `combat.js`) menace de dépasser 400 lignes, le sous-découper immédiatement (ex: `src/modules/ui/events.js`, etc.).
 - **Validation** : Strictement iso-fonctionnel. L'application doit fonctionner à l'identique.
 
-### ✅ Lot 03 — Configuration Vercel + Secrets [CLOTURÉ]
-- Repo lié au projet Vercel `anathazer-tracker`
-- Déploiement via **intégration GitHub native Vercel** (PR → preview · main → prod)
-- Variables Firebase configurées (GitHub secrets pour le build + env Vercel prod/preview)
-- Workflow simplifié : gate qualité lint/test/build uniquement (jobs deploy custom retirés — l'action `amondnet/vercel-action@v25` épinglait un CLI obsolète et faisait doublon avec l'intégration native)
-
-### 📋 Lot 04a — Tests de caractérisation (Combat) [PLANIFIÉ]
+### 📋 Lot 02b — Tests de caractérisation (Combat) [PLANIFIÉ]
 **Objectif** : Mettre en place un filet de sécurité de tests automatisés avant toute optimisation du comportement.
 - **Couverture prioritaire** : tests unitaires complets sur la logique de combat du module `src/modules/combat.js` (calculs de dégâts, soins, PV/PM/PC, gestion des états).
 
-### 📋 Lot 02b — Optimisations & Améliorations [PLANIFIÉ]
+### 📋 Lot 02c — Optimisations & Améliorations [PLANIFIÉ]
 **Objectif** : Améliorations de performance, réécriture comportementale et refonte de l'état.
 - **Optimisations** :
   - *État* : Indexation de `state.chars` par ID ($O(1)$) au lieu de boucles linéaires.
@@ -47,7 +46,7 @@ PWA TTRPG (Chroniques Oubliées Fantasy) — suivi de combat MJ/Joueurs, dés, f
   - *Firebase* : Remplacement des imports Firebase dynamiques par des imports statiques.
   - *Rendu* : Optimisation des re-rendus DOM (re-rendus ciblés par ID/classe au lieu de re-rendus globaux).
 
-### 📋 Lot 04b — Reste des tests unitaires [PLANIFIÉ]
+### 📋 Lot 02d — Reste des tests unitaires [PLANIFIÉ]
 - **Tests dés** (formules de jets, historique)
 - **Tests state / storage** (sauvegarde, chargement, migrations et abstraction localStorage)
 
