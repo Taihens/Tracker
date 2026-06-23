@@ -1,0 +1,108 @@
+<#
+.SYNOPSIS
+  Génère une archive de handoff conforme à CLAUDE.md §5.
+
+.DESCRIPTION
+  Produit un dossier horodaté handoff/handoffXX_nom/ contenant :
+    - git_diff.patch     : diff complet vs la branche de base
+    - git_status.txt     : état de l'arbre de travail
+    - files_changed.txt  : liste des fichiers modifiés
+    - test_results.txt   : sortie de `npm test`
+    - build_log.txt      : sortie de `npm run build`
+    - SUMMARY.md         : en-tête (branche, lot, date, commits)
+  Puis zippe le tout en handoff/handoffXX_nom.zip.
+
+.PARAMETER Numero
+  Numéro du lot (ex: 04). Formaté sur 2 chiffres.
+
+.PARAMETER Nom
+  Slug court du handoff (ex: remediation-pipeline).
+
+.PARAMETER Base
+  Branche/réf de comparaison pour le diff. Défaut : main.
+
+.EXAMPLE
+  npm run handoff -- 04 remediation-pipeline
+#>
+[CmdletBinding()]
+param(
+  [Parameter(Mandatory = $true, Position = 0)]
+  [string]$Numero,
+
+  [Parameter(Mandatory = $true, Position = 1)]
+  [string]$Nom,
+
+  [Parameter(Position = 2)]
+  [string]$Base = 'main'
+)
+
+$ErrorActionPreference = 'Stop'
+
+# Racine du repo (le script vit dans scripts/)
+$repoRoot = Split-Path -Parent $PSScriptRoot
+Set-Location $repoRoot
+
+$num = $Numero.PadLeft(2, '0')
+$slug = "handoff${num}_${Nom}"
+$outDir = Join-Path $repoRoot "handoff\$slug"
+$zipPath = Join-Path $repoRoot "handoff\$slug.zip"
+
+if (Test-Path $outDir) { Remove-Item $outDir -Recurse -Force }
+if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
+New-Item -ItemType Directory -Path $outDir -Force | Out-Null
+
+$branch = (git rev-parse --abbrev-ref HEAD).Trim()
+$stamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
+$commitCount = (git rev-list --count "$Base..HEAD").Trim()
+
+Write-Host "→ Handoff $slug (branche $branch vs $Base)" -ForegroundColor Cyan
+
+# --- Artefacts git ---
+git diff "$Base...HEAD"            | Out-File -Encoding utf8 (Join-Path $outDir 'git_diff.patch')
+git status                          | Out-File -Encoding utf8 (Join-Path $outDir 'git_status.txt')
+git diff --name-only "$Base...HEAD" | Out-File -Encoding utf8 (Join-Path $outDir 'files_changed.txt')
+
+# --- Tests (non bloquant) ---
+# La redirection 2>&1 est traitée par cmd.exe (à l'intérieur des guillemets),
+# donc PowerShell ne wrappe pas la sortie en NativeCommandError (piège PS 5.1).
+Write-Host '→ npm test' -ForegroundColor Cyan
+cmd /c "npm test 2>&1" | Out-File -Encoding utf8 (Join-Path $outDir 'test_results.txt')
+$testExit = $LASTEXITCODE
+
+# --- Build (non bloquant) ---
+Write-Host '→ npm run build' -ForegroundColor Cyan
+cmd /c "npm run build 2>&1" | Out-File -Encoding utf8 (Join-Path $outDir 'build_log.txt')
+$buildExit = $LASTEXITCODE
+
+# --- Résumé ---
+$testStatus = if ($testExit -eq 0) { '✅ vert' } else { "❌ échec (exit $testExit)" }
+$buildStatus = if ($buildExit -eq 0) { '✅ OK' } else { "❌ échec (exit $buildExit)" }
+
+$summary = @"
+# Handoff $num — $Nom
+
+- **Branche** : $branch
+- **Base de comparaison** : $Base
+- **Date** : $stamp
+- **Commits** ($Base..HEAD) : $commitCount
+- **Tests** : $testStatus
+- **Build** : $buildStatus
+
+## Contenu
+- git_diff.patch — diff complet vs $Base
+- git_status.txt — état de l'arbre
+- files_changed.txt — fichiers modifiés
+- test_results.txt — sortie npm test
+- build_log.txt — sortie npm run build
+"@
+$summary | Out-File -Encoding utf8 (Join-Path $outDir 'SUMMARY.md')
+
+# --- Zip ---
+Compress-Archive -Path "$outDir\*" -DestinationPath $zipPath -Force
+
+Write-Host ''
+Write-Host "✅ Handoff généré : handoff\$slug.zip" -ForegroundColor Green
+Write-Host "   Tests : $testStatus  |  Build : $buildStatus"
+if ($testExit -ne 0 -or $buildExit -ne 0) {
+  Write-Host '⚠️  Tests ou build en échec — vérifie test_results.txt / build_log.txt avant de clôturer le lot.' -ForegroundColor Yellow
+}

@@ -34,24 +34,34 @@
 
 ---
 
-## Lot en cours : Lot 02 — Refactoring modulaire & Qualité
+## Lot en cours : Lot 02a — Déplacement modulaire pur
 
 ### Tâches
-- [ ] Créer `src/modules/constants.js`
-- [ ] Créer `src/modules/cof-classes.js`
-- [ ] Créer `src/modules/storage.js` (abstraction localStorage)
-- [ ] Créer `src/modules/state.js` (gestion d'état unique, indexation par ID)
-- [ ] Créer `src/modules/firebase.js` (synchro Firebase, imports statiques)
-- [ ] Créer `src/modules/dice.js` (jets de dés)
-- [ ] Créer `src/modules/combat.js` (logique combat pure)
-- [ ] Créer `src/modules/messages.js` (messagerie et logs de combat)
-- [ ] Créer `src/modules/fiches.js` (fiche personnage et wizard)
-- [ ] Créer `src/modules/roster.js` (ordre d'initiative et roster)
-- [ ] Créer `src/modules/recap.js` (statistiques et recap)
-- [ ] Créer `src/modules/ui.js` (liaisons DOM et re-rendus ciblés)
-- [ ] Refactorer `src/main.js` pour orchestrer les modules (inférieur à 400 lignes)
-- [ ] Bumper version `CACHE` dans `public/sw.js` (R1)
-- [ ] Valider localement : lint + build + smoke tests au vert
+- [ ] Déplacer les constantes et magic strings → `src/modules/constants.js`
+- [ ] Déplacer les classes COF → `src/modules/cof-classes.js`
+- [ ] Créer `src/modules/storage.js` (abstraction `localStorage` pure, sans modif logique)
+- [ ] Déplacer la logique d'état sans modif (variables globales regroupées de manière minimale) → `src/modules/state.js`
+- [ ] Déplacer la logique Firebase → `src/modules/firebase.js`
+- [ ] Déplacer la logique de dés → `src/modules/dice.js`
+- [ ] Déplacer la logique de combat pure → `src/modules/combat.js`
+- [ ] Déplacer la logique de messagerie et logs → `src/modules/messages.js`
+- [ ] Déplacer la logique de fiches → `src/modules/fiches.js`
+- [ ] Déplacer la logique de roster/initiative → `src/modules/roster.js`
+- [ ] Déplacer la logique de recap → `src/modules/recap.js`
+- [ ] Déplacer la logique UI & DOM → `src/modules/ui.js` (sous-découper si >400 lignes)
+- [ ] Refactorer `src/main.js` pour importer et orchestrer les modules (<400 lignes, R5)
+- [ ] Bumper la version `CACHE` dans `public/sw.js` (R1)
+- [ ] Valider localement : lint + build + smoke tests au vert (iso-fonctionnalité stricte)
+
+---
+
+## Lot suivant : Lot 04a — Tests de caractérisation (Combat)
+> À exécuter immédiatement après le Lot 02a pour garantir la non-régression du module critique de combat.
+
+---
+
+## Lot suivant : Lot 02b — Optimisations & Améliorations
+> Optimisation de l'état (indexation ID O(1)), async/await IA Gemini, imports statiques Firebase, re-rendus ciblés.
 
 ---
 
