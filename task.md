@@ -34,7 +34,7 @@
 
 ---
 
-## Lot 02a — Déplacement modulaire pur [CLOTURÉ]
+## Lot en cours : Lot 02a — Déplacement modulaire pur
 
 ### Tâches
 - [x] Déplacer les constantes et magic strings → `src/modules/constants.js` (+ `constants/default-chars.js`)
@@ -52,6 +52,7 @@
 - [x] Refactorer `src/main.js` pour importer et orchestrer les modules (210 lignes, R5)
 - [x] Bumper la version `CACHE` dans `public/sw.js` v6 → v7 (R1)
 - [x] Valider localement : lint 0 err · build OK (32 modules) · smoke 3/3 (iso-fonctionnalité stricte)
+- [ ] ⚠️ Validation navigateur manuelle (console sans ReferenceError, handlers critiques)
 
 ### Divergences vs liste architecte (organisationnel, esprit du scope — signalé en mailbox)
 - Ajout de modules hors liste pour respecter R5 (<400 l) : `levelup.js` (+`levelup/wizard.js`, `levelup/pending.js`), `assistant.js` (+`assistant/gemini.js`, `assistant/cof-import.js`), `bindings.js`.
@@ -59,20 +60,11 @@
 - **Bug évité (stale-binding)** : `pendingChars`/`pendingLvlUps` réassignés sur sync Firebase → import ES direct (live) au lieu de `window.x` (snapshot obsolète) dans `fiches/wizard.js` et `ui/render.js`.
 - Helpers `fb*` co-localisés dans leur module métier plutôt qu'un `firebase.js` monolithique.
 - Vérif statique anti-bouton-mort : 123 cibles inline + 32 `window.*` toutes couvertes (0 référence morte).
-- ⚠️ Reste : **validation navigateur manuelle par Taihens** (console sans `ReferenceError`, handlers critiques) — non automatisable.
 
 ---
 
-## Lot en cours : Lot 02b — Tests de caractérisation (Combat)
-
-### Tâches
-- [ ] Créer `tests/combat.test.js`
-- [ ] Écrire les tests pour `applyDmg` (PV, inconscience, mort, valeurs invalides)
-- [ ] Écrire les tests pour `applyHeal` (PV max, retour de l'inconscience, soins sur mort)
-- [ ] Écrire les tests pour la gestion et les limites des ressources (PM et PC)
-- [ ] Écrire les tests pour l'application, le cumul et le nettoyage des états
-- [ ] Valider localement via `npm test` (vitest)
-- [ ] S'assurer que le linter et le build sont toujours au vert
+## Lot suivant : Lot 02b — Tests de caractérisation (Combat)
+> À exécuter immédiatement après la validation du Lot 02a pour garantir la non-régression du module critique de combat.
 
 ---
 
