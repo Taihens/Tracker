@@ -65,5 +65,5 @@
 
 ---
 
-## Lot suivant : Lot 04 — Tests unitaires
-> À démarrer une fois le refactoring modulaire du Lot 02 validé. Priorité sur la logique de combat.
+## Lot suivant : Lot 04b — Reste des tests unitaires
+> Tests unitaires restants (dés, stockage et état).
