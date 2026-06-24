@@ -117,23 +117,36 @@ export function adjPC(id, d) {
 export function adjRound(d) { state.round = Math.max(1, state.round + d); save(); window.render(); }
 
 // ── POINT DE RÉCUPÉRATION ──
+// Applique un point de récupération COF à un personnage. Retourne les PV soignés
+// (entier > 0) ou null si non applicable (KO ou PV max).
+function performPointRecup(c) {
+  if (c.pvActuel <= 0 || c.pvActuel >= c.pvMax) return null;
+  const conMod = parseMod(c.attrs?.CON || 0);
+  const dv = dvMax(c.dv || 'D6');
+  const roll = Math.floor(Math.random() * dv) + 1;
+  const niveau = c.niveau || 1; // Bug historique (02c) : défaut 1 évite NaN
+  const gain = Math.max(1, roll + conMod + niveau);
+  const avant = c.pvActuel;
+  c.pvActuel = Math.min(c.pvMax, c.pvActuel + gain);
+  const actual = c.pvActuel - avant;
+  if (actual > 0) {
+    const entry = { logId: nextLogId(), charId: c.id, charName: c.name, ev: 'Soin', val: actual, source: `Point de récupération (${c.dv}:${roll}+CON${conMod >= 0 ? '+' : ''}${conMod}+Niv${niveau}=${gain})`, combat: document.getElementById('g-cname')?.value || '—', type: '—', session: state.session, cbt: state.combat, rnd: state.round, pv: c.pvActuel, ts: Date.now() };
+    state.log.push(entry); pushHistory(c.id, c.pvActuel, c.etat, entry);
+  }
+  return actual > 0 ? actual : null;
+}
+export function pointRecupChar(id) {
+  const c = getChar(id); if (!c) return;
+  const healed = performPointRecup(c); if (healed === null) return;
+  save(); window.render();
+  const el = document.getElementById('card-' + c.id);
+  if (el) { el.classList.add('healing'); setTimeout(() => el.classList.remove('healing'), 900); }
+  window.toast(`✦ ${c.name} — Point de Récupération +${healed} PV`, 't-h');
+}
 export function pointRecup() {
-  state.chars.filter(c => c.present && c.pvActuel > 0 && c.pvActuel < c.pvMax).forEach(c => {
-    const conMod = parseMod(c.attrs?.CON || 0);
-    const dv = dvMax(c.dv || 'D6');
-    // COF rule: DV (lancé) + mod CON + niveau
-    const roll = Math.floor(Math.random() * dv) + 1;
-    // Bug historique (02c) : c.niveau absent → NaN propagé dans le PV. Défaut 1.
-    const niveau = c.niveau || 1;
-    const gain = Math.max(1, roll + conMod + niveau);
-    const avant = c.pvActuel;
-    c.pvActuel = Math.min(c.pvMax, c.pvActuel + gain);
-    const actual = c.pvActuel - avant;
-    if (actual > 0) {
-      const entry = { logId: nextLogId(), charId: c.id, charName: c.name, ev: 'Soin', val: actual, source: `Point de récupération (${c.dv}:${roll}+CON${conMod >= 0 ? '+' : ''}${conMod}+Niv${niveau}=${gain})`, combat: document.getElementById('g-cname')?.value || '—', type: '—', session: state.session, cbt: state.combat, rnd: state.round, pv: c.pvActuel, ts: Date.now() };
-      state.log.push(entry); pushHistory(c.id, c.pvActuel, c.etat, entry);
-    }
-  });
+  let anyHealed = false;
+  state.chars.filter(c => c.present).forEach(c => { if (performPointRecup(c) !== null) anyHealed = true; });
+  if (!anyHealed) return;
   save(); window.render();
   state.chars.filter(c => c.present).forEach(c => { const el = document.getElementById('card-' + c.id); if (el) { el.classList.add('healing'); setTimeout(() => el.classList.remove('healing'), 900); } });
   window.toast('✦ Point de Récupération appliqué — voir le journal', 't-h');
@@ -145,7 +158,7 @@ export async function endRound() {
     window.saveSnapshot();
     state.round++;
     state.chars.forEach(c => { if (c.etat === 'Surpris') c.etat = 'Normal'; });
-    save(); window.render(); window.showUndoBar(`Round ${state.round} — action annulable`);
+    save(); window.render();
   }
 }
 export async function endCombat() {
@@ -153,18 +166,19 @@ export async function endCombat() {
     window.saveSnapshot();
     state.combat++; state.round = 1; state.activeTurn = null;
     state.chars.forEach(c => { if (['Étourdi', 'Surpris'].includes(c.etat)) c.etat = 'Normal'; });
-    save(); window.render(); window.showUndoBar(`Combat ${state.combat} prêt — action annulable`);
+    save(); window.render();
   }
 }
 export async function endSession() {
   if (await window.showActionConfirm('📜', 'Fin de Session', `Terminer la Session ${state.session} et passer à la suivante ?`)) {
     window.saveSnapshot();
     state.session++; state.combat = 1; state.round = 1; state.activeTurn = null;
-    save(); window.render(); window.showUndoBar(`Session ${state.session} — action annulable`);
+    save(); window.render();
   }
 }
 export async function resetAll() {
   if (await window.showActionConfirm('✕', 'Réinitialiser TOUT', 'Cette action est irréversible. Toutes les données seront perdues.')) {
+    window.saveSnapshot();
     setState({ chars: JSON.parse(JSON.stringify(DEFAULT_CHARS)), log: [], session: 1, combat: 1, round: 1, activeTurn: null, etats: JSON.parse(JSON.stringify(ETATS_DEFAULT)), lvlUpHistory: {} });
     setCharHistory({}); save(); window.render(); window.toast('Tout réinitialisé', 't-i');
   }
@@ -173,7 +187,6 @@ export async function reposComplet() {
   if (await window.showActionConfirm('☽', 'Repos Complet', 'Tous les PV, PM et PC seront restaurés au maximum.')) {
     window.saveSnapshot();
     confirmReposComplet();
-    window.showUndoBar('Repos complet — action annulable');
   }
 }
 export function confirmReposComplet() {

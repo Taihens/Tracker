@@ -105,6 +105,10 @@ export function updateCardDOM(c){
   if(svs[2]) svs[2].textContent=c.att;
   if(svs[3]) svs[3].textContent=c.degats;
 
+  // Bouton récup. individuel
+  const recupBtn=card.querySelector('#recup-btn-'+c.id);
+  if(recupBtn) recupBtn.disabled=(c.pvActuel===0||c.pvActuel>=c.pvMax);
+
   // Undo / redo + compteur
   const h=charHistory[c.id]||{pos:0,snapshots:[{pvActuel:c.pvActuel,etat:c.etat}]};
   const len=h.snapshots.length-1;
@@ -169,6 +173,7 @@ export function cardHTML(c){
       <input class="ci hi" id="heal-${c.id}" type="number" min="0" placeholder="Soin" onkeydown="if(event.key==='Enter')applyHeal(${c.id})">
       <input class="ti" id="hsrc-${c.id}" placeholder="Source du soin">
       <button class="btn btn-h" onclick="applyHeal(${c.id})">✚ Soigner</button>
+      <button class="btn btn-g" id="recup-btn-${c.id}" onclick="pointRecupChar(${c.id})"${(c.pvActuel === 0 || c.pvActuel >= c.pvMax) ? ' disabled' : ''} title="Appliquer un point de récupération individuel (DV + CON + Niveau)">✦ Récup.</button>
     </div>
   </div>
   <div class="undo-row">

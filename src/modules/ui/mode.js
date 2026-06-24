@@ -1,6 +1,7 @@
 import { state, appMode, modeExplicitlySet, selectedPlayerChar, setAppMode, setModeExplicitlySet, setSelectedPlayerChar } from '../state.js';
 import { resetMsgListeners, fbListenMessages } from '../messages.js';
 import { _fbConnected } from '../firebase.js';
+import { updateUndoButtonVisibility } from './modals.js';
 
 export function openModeModal(){
   if(appMode==='mj'){
@@ -14,6 +15,7 @@ export function openModeModal(){
     document.getElementById('mj-act-row').style.display='none';
     const editBtn=document.getElementById('fiche-edit-btn');
     if(editBtn) editBtn.style.display='none';
+    updateUndoButtonVisibility();
     openCharSelect();
   } else {
     document.getElementById('mode-overlay').classList.add('show');
@@ -77,6 +79,7 @@ export function setMode(mode){
     window.render();
     if(_fbConnected) fbListenMessages();
   }
+  updateUndoButtonVisibility();
 }
 export function openCharSelect(){
   const list=document.getElementById('cs-list');

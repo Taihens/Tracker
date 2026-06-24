@@ -152,6 +152,8 @@ input.ti:focus{outline:none;border-color:var(--gold)}
 .btn-h:hover{background:var(--grn2);color:#fff}
 .btn-g{background:rgba(200,147,64,.12);color:var(--gold);border:1px solid rgba(200,147,64,.3)}
 .btn-g:hover{background:rgba(200,147,64,.28)}
+.btn-undo-last{background:rgba(200,147,64,.15);color:var(--gold2);border-color:rgba(200,147,64,.35)}
+.btn-undo-last:hover{background:rgba(200,147,64,.3);color:#fff}
 .btn-r{background:rgba(139,26,26,.15);color:var(--red3);border:1px solid rgba(139,26,26,.35)}
 .btn-r:hover{background:rgba(139,26,26,.45);color:#fff}
 .btn-type{font-family:'Cinzel',serif;font-size:7.5px;letter-spacing:.05em;padding:4px 6px;border-radius:2px;cursor:pointer;text-transform:uppercase;transition:.15s;border:1px solid var(--bdr2);background:var(--bg3);color:var(--txt2);white-space:nowrap}

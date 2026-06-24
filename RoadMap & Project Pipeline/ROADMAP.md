@@ -60,16 +60,56 @@ PWA TTRPG (Chroniques Oubliées Fantasy) — suivi de combat MJ/Joueurs, dés, f
 - **Tests storage** : `loadState` (7 scénarios : v4/v3/corrompu/migration att→3att/fusion voies), `loadSettings`, `saveSettings`, `applyTheme`, `getCharPwds/setCharPwds`, `getPmAttrPref/setPmAttrPref` → `tests/storage.test.js` (19 tests)
 - **Livré** : 3 nouveaux fichiers de tests · suite totale **135/135** verts · lint 0 err · build OK · R1 non applicable (tests seuls, pas de JS/CSS servi modifié).
 
-### 📋 Lot 04 — Améliorations UX Combat (Undo & Récupération) [PLANIFIÉ]
+### ✅ Lot 04 — Améliorations UX Combat (Undo & Récupération) [CLOTURÉ]
 **Objectif** : Améliorer l'ergonomie et la robustesse des actions administratives majeures (Undo permanent global, support de `resetAll`) et ajouter un bouton de Point de Récupération individuel par carte.
-- **Fonctionnalités** :
-  - *Bouton physique Undo* : Intégration d'un bouton d'annulation permanent dans la ligne d'actions MJ du Tableau de bord.
-  - *Snapshot d'état complet* : Remplacement du snapshot partiel par un snapshot d'état complet de l'application (personnages, logs, historiques) pour permettre l'annulation de toutes les actions, y compris `resetAll`.
-  - *Gestion de la visibilité Undo* : Affichage dynamique du bouton uniquement si un snapshot d'annulation est disponible localement pour le MJ.
-  - *Point de Récupération individuel* : Ajout d'un bouton de récupération par personnage à côté de "✚ Soigner", avec désactivation visuelle si le personnage est KO (PV = 0) ou à PV max. Factorisation du calcul sous-jacent.
+- **Livré** : commit feat/refonte-vite · 9 fichiers · 142/142 tests · CACHE v9. Validation navigateur Taihens : ✅ OK (3 volets). Handoff `handoff06_lot04.zip`.
+- **Fonctionnalités livrées** :
+  - *Bouton physique Undo* : `↩ Annuler action` dans sa propre ligne, visible en mode MJ **et** Joueur.
+  - *Snapshot d'état complet* : chars, log, etats, lvlUpHistory, charHistory — annulation de toutes les actions y compris `resetAll`.
+  - *Gestion de la visibilité Undo* : bouton visible uniquement si snapshot disponible (MJ et Joueur).
+  - *Point de Récupération individuel* : bouton `✦ Récup.` par carte, désactivé si KO ou PV max. Helper `performPointRecup` factorisé.
 
-### 📋 Lot 05 — Fonctionnalités [À DÉFINIR PAR GÉMI]
-- TBD selon besoins de la campagne
+### 📋 Lot 05 — Qualité de vie, Offline & Sécurité (Quick Wins) [PLANIFIÉ]
+**Objectif** : Résoudre les vulnérabilités de sécurité critiques (XSS, PIN, clés), activer la persistance locale et implémenter des améliorations ergonomiques simples.
+- **Fonctionnalités** :
+  - *Sécurité & Surface d'attaque (F2, F8, F9)* : Échappement HTML complet (`esc(s)`) pour l'affichage du log et de la messagerie ; restriction des bindings `window` aux fonctions strictement requises par le DOM avec gardes `appMode !== 'mj'`.
+  - *Protection des données (F3, F10)* : Hachage SHA-256 du code PIN MJ via l'API Web Crypto ; migration de la clé d'API Gemini du `localStorage` vers le `sessionStorage` (perdue à la fermeture de l'onglet).
+  - *Service Worker & Build (F1, F4, F12)* : Désactivation de VitePWA au profit du SW artisanal `public/sw.js` (corrige le conflit de double SW) ; suppression du bloc d'auto-désinstallation du SW dans `index.html` ; retrait des sourcemaps en production.
+  - *Migration d'historique (F13)* : Migration dans `loadState` pour assigner un UUID (`crypto.randomUUID()`) à toute entrée de log héritée dépourvue de `logId`.
+  - *Firebase Offline-First* : Activation de `enableIndexedDbPersistence()` pour les mutations immédiates hors-ligne.
+  - *Ergonomie* : Tri automatique par initiative, badges visuels d'états avec tooltips de règles au survol, et champ de saisie de notes rapides éphémères sur les cartes de combat.
+
+### 📋 Lot 06 — Assistant IA & RAG PDF [PLANIFIÉ]
+**Objectif** : Intégrer les PDF de COF sous forme de base de connaissances (RAG) et automatiser l'intégration du contexte pour l'assistant Gemini.
+- **Fonctionnalités** :
+  - *RAG double-index* : Index public de règles (`cof_rules_embeddings.json`) et index MJ de campagne (`cof_campaign_embeddings.json`) basés sur les PDF de la campagne Anathazerïn. Cosine similarity locale pour injecter les 3 meilleurs extraits de règles dans le prompt.
+  - *Contexte de combat auto-injecté* : Gemini reçoit automatiquement le round, les PV, les états et les derniers logs sans copier-coller manuel.
+  - *Récapitulatif combat narratif* : Gemini rédige un résumé romancé de la bataille à partir du journal des logs.
+
+### 📋 Lot 07 — Importateurs & Fiches [PLANIFIÉ]
+**Objectif** : Faciliter la saisie et le partage des personnages et monstres via les PDF et le format JSON.
+- **Fonctionnalités** :
+  - *Importateur de monstre/PNJ PDF* : Copier-coller de bloc de stats ou envoi de page PDF → Gemini convertit en JSON structuré → import immédiat.
+  - *Importateur de fiche PJ (PDF)* : Lecture des champs de formulaires d'une fiche PDF officielle COF importée pour pré-remplir le personnage.
+  - *Import/Export JSON* : Téléchargement et import de fiches personnages au format `.json`.
+  - *Groupes & Factions* : Séparateurs visuels et filtres entre PJ, PNJ alliés et Ennemis.
+
+### 📋 Lot 08 — Messagerie, Dés & Archiving [PLANIFIÉ]
+**Objectif** : Améliorer les interactions en direct et pérenniser l'historique de jeu.
+- **Fonctionnalités** :
+  - *Limitation & Archivage de log (F11)* : Conservation du log courant `state.log` pour la session active uniquement (vidé à `endSession()`) ; archivage permanent des sessions dans `/sessions/{N}/log` sur Firebase ; cumul des statistiques globales des personnages dans `state.logStats`.
+  - *Export du log en Markdown* : Téléchargement du journal de session actif ou des archives en format `.md`.
+  - *Fiches interactives* : Clic sur le bonus d'une arme/compétence lance automatiquement le dé.
+  - *Dés partagés dans le chat* : Commande `/roll` envoyant le résultat formaté dans les messages.
+  - *Notifications push PWA* et *Chronomètre de round* / *Vue compacte*.
+
+### 📋 Lot 09 — Réécriture Persistance & Synchronisation [PLANIFIÉ]
+**Objectif** : Refondre l'architecture réseau pour résoudre les conflits d'écritures concurrentes et les fuites mémoire.
+- **Fonctionnalités** :
+  - *Firebase Delta Sync* : Remplacement des sauvegardes globales par des écritures de champs chirurgicales.
+  - *Compteur d'écritures en vol (F5)* : Résolution des race conditions réseau via un compteur global plutôt qu'un flag booléen `_fbIgnoreNext`.
+  - *Merge intelligent (F6)* : Résolution des conflits temporels par fusion d'identifiants de logs à la place du seuil arbitraire de 2s.
+  - *Désabonnement propre (F7)* : Nettoyage des écoutes Firebase lors des changements de rôles/modes pour éviter les fuites de mémoire.
 
 ---
 

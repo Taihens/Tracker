@@ -73,6 +73,9 @@ if('serviceWorker' in navigator){
       <button class="btn-action btn-session" onclick="endSession()">📜 Fin de Session</button>
       <button class="btn-action btn-reset-d" onclick="resetAll()">✕ Réinitialiser</button>
     </div>
+    <div class="action-btns" id="undo-act-row">
+      <button class="btn-action btn-undo-last" id="btn-undo-last" style="display:none" onclick="undoLastAction()">↩ Annuler action</button>
+    </div>
   </div>
   <div class="char-grid" id="char-grid"></div>
 </div>
@@ -486,12 +489,6 @@ if('serviceWorker' in navigator){
   </div>
 </div>
 
-<!-- UNDO TOAST -->
-<div id="undo-bar" style="display:none;position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:var(--bg2);border:1px solid var(--gold);border-radius:3px;padding:10px 18px;z-index:800;align-items:center;gap:12px;box-shadow:0 4px 20px rgba(0,0,0,.5)">
-  <span id="undo-bar-msg" style="font-family:'Cinzel',serif;font-size:10px;color:var(--txt2);letter-spacing:.08em"></span>
-  <button class="btn-action btn-recup" style="font-size:8px;padding:4px 10px" onclick="undoLastAction()">↩ Annuler</button>
-  <button class="btn-action btn-fin-combat" style="font-size:8px;padding:4px 10px" onclick="hideUndoBar()">→ Continuer</button>
-</div>
 
 <div id="repos-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.87);z-index:920;align-items:center;justify-content:center">
   <div style="background:var(--bg2);border:1px solid var(--pur2);border-radius:4px;max-width:380px;width:100%;margin:auto;padding:24px;text-align:center">

@@ -1,7 +1,7 @@
-import { state, appMode, selectedPlayerChar } from '../state.js';
+import { state, appMode, selectedPlayerChar, charHistory, setCharHistory, rebuildCharsMap } from '../state.js';
 import { save } from '../firebase.js';
 
-let _lastActionSnapshot = null, _undoTimer = null;
+let _lastActionSnapshot = null;
 let _confirmResolve = null; // promesse pendante (Lot 02c)
 
 // Retourne une Promise<boolean> (OK→true, annulation/fermeture→false).
@@ -33,30 +33,25 @@ export function saveSnapshot() {
   _lastActionSnapshot = JSON.parse(JSON.stringify({
     round: state.round, combat: state.combat, session: state.session,
     activeTurn: state.activeTurn,
-    chars: state.chars.map(c => ({ id: c.id, etat: c.etat, pvActuel: c.pvActuel, pmActuel: c.pmActuel, pcActuel: c.pcActuel }))
+    chars: state.chars, log: state.log, etats: state.etats,
+    lvlUpHistory: state.lvlUpHistory, charHistory,
   }));
+  updateUndoButtonVisibility();
 }
-export function showUndoBar(msg) {
-  const bar = document.getElementById('undo-bar');
-  document.getElementById('undo-bar-msg').textContent = msg;
-  bar.style.display = 'flex';
-  if (_undoTimer) clearTimeout(_undoTimer);
-  _undoTimer = setTimeout(hideUndoBar, 12000);
-}
-export function hideUndoBar() {
-  document.getElementById('undo-bar').style.display = 'none';
-  if (_undoTimer) { clearTimeout(_undoTimer); _undoTimer = null; }
-  _lastActionSnapshot = null;
+export function updateUndoButtonVisibility() {
+  const btn = document.getElementById('btn-undo-last');
+  if (!btn) return;
+  btn.style.display = (_lastActionSnapshot !== null) ? '' : 'none';
 }
 export function undoLastAction() {
   if (!_lastActionSnapshot) { window.toast('Rien à annuler', 't-w'); return; }
   const s = _lastActionSnapshot;
   state.round = s.round; state.combat = s.combat; state.session = s.session; state.activeTurn = s.activeTurn;
-  s.chars.forEach(sc => {
-    const c = state.chars.find(x => x.id === sc.id);
-    if (c) { c.etat = sc.etat; c.pvActuel = sc.pvActuel; c.pmActuel = sc.pmActuel; c.pcActuel = sc.pcActuel; }
-  });
-  save(); window.render(); hideUndoBar(); window.toast('Action annulée', 't-i');
+  state.chars = s.chars; state.log = s.log; state.etats = s.etats; state.lvlUpHistory = s.lvlUpHistory;
+  setCharHistory(s.charHistory);
+  rebuildCharsMap();
+  _lastActionSnapshot = null;
+  save(); window.render(); updateUndoButtonVisibility(); window.toast('Action annulée', 't-i');
 }
 export function checkDeath(c) {
   if (appMode !== 'joueur' || c.id !== selectedPlayerChar) return;

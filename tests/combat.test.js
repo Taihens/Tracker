@@ -41,7 +41,7 @@ vi.mock('../src/modules/constants.js', () => ({
 
 import {
   hpClass, hpColor, setDmgType, setEtat, updateCardPV, applyDmg, applyHeal,
-  adjPM, recupPM, adjPC, adjRound, pointRecup, endRound, endCombat, endSession,
+  adjPM, recupPM, adjPC, adjRound, pointRecup, pointRecupChar, endRound, endCombat, endSession,
   resetAll, reposComplet, confirmReposComplet, setActiveTurn,
 } from '../src/modules/combat.js';
 import { state, cardTypes, setState, setCharHistory, pushHistory } from '../src/modules/state.js';
@@ -74,7 +74,7 @@ function mountHealInputs(id, { heal = '', hsrc = '' } = {}) {
     `<input id="g-cname" value="Donjon"><div id="tab-log"></div><div id="tab-recap"></div>`);
 }
 
-const WINDOW_STUBS = ['render', 'toast', 'checkDeath', 'renderLog', 'renderRecap', 'saveSnapshot', 'showUndoBar'];
+const WINDOW_STUBS = ['render', 'toast', 'checkDeath', 'renderLog', 'renderRecap', 'saveSnapshot'];
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -468,6 +468,49 @@ describe('pointRecup', () => {
   });
 });
 
+describe('pointRecupChar', () => {
+  it('id introuvable → early return, pas de save', () => {
+    pointRecupChar(99);
+    expect(save).not.toHaveBeenCalled();
+  });
+  it('pvActuel = 0 (KO) → early return, pas de save', () => {
+    const c = makeChar({ pvActuel: 0 }); state.chars = [c];
+    pointRecupChar(1);
+    expect(save).not.toHaveBeenCalled();
+  });
+  it('pvActuel >= pvMax → early return, pas de save', () => {
+    const c = makeChar({ pvActuel: 100, pvMax: 100 }); state.chars = [c];
+    pointRecupChar(1);
+    expect(save).not.toHaveBeenCalled();
+  });
+  it('nominal : soigne le perso, save + render + toast + animation healing', () => {
+    // Math.random=0.5, D8 → roll=5, gain=max(1, 5+3+8)=16, pvActuel=50+16=66
+    const c = makeChar({ pvActuel: 50 }); state.chars = [c];
+    mountCard(1);
+    pointRecupChar(1);
+    expect(c.pvActuel).toBe(66);
+    expect(save).toHaveBeenCalled();
+    expect(window.render).toHaveBeenCalled();
+    expect(window.toast).toHaveBeenCalledWith(expect.stringContaining('✦'), 't-h');
+    expect(document.getElementById('card-1').classList.contains('healing')).toBe(true);
+  });
+  it('animation retirée après 900ms', () => {
+    vi.useFakeTimers();
+    const c = makeChar({ pvActuel: 50 }); state.chars = [c];
+    const card = mountCard(1);
+    pointRecupChar(1);
+    expect(card.classList.contains('healing')).toBe(true);
+    vi.advanceTimersByTime(900);
+    expect(card.classList.contains('healing')).toBe(false);
+  });
+  it('clampe à pvMax (identique à pointRecup)', () => {
+    const c = makeChar({ pvActuel: 99, pvMax: 100 }); state.chars = [c];
+    mountCard(1);
+    pointRecupChar(1);
+    expect(c.pvActuel).toBe(100);
+  });
+});
+
 describe('endRound', () => {
   it('demande confirmation (showActionConfirm appelé)', async () => {
     await endRound();
@@ -480,7 +523,7 @@ describe('endRound', () => {
     expect(state.round).toBe(3);
     expect(window.saveSnapshot).not.toHaveBeenCalled();
   });
-  it("confirmé : round++, 'Surpris'→'Normal', saveSnapshot + showUndoBar", async () => {
+  it("confirmé : round++, 'Surpris'→'Normal', saveSnapshot appelé", async () => {
     const surpris = makeChar({ id: 1, etat: 'Surpris' });
     const etourdi = makeChar({ id: 2, etat: 'Étourdi' });
     state.chars = [surpris, etourdi];
@@ -490,7 +533,6 @@ describe('endRound', () => {
     expect(surpris.etat).toBe('Normal');
     expect(etourdi.etat).toBe('Étourdi'); // endRound n'efface QUE Surpris (asymétrie vs endCombat)
     expect(window.saveSnapshot).toHaveBeenCalled();
-    expect(window.showUndoBar).toHaveBeenCalled();
   });
 });
 
@@ -540,11 +582,19 @@ describe('resetAll', () => {
     expect(setCharHistory).toHaveBeenCalledWith({});
     expect(state.chars).toBe(original); // resetAll délègue à setState, ne mute pas state
     expect(window.toast).toHaveBeenCalled();
+    expect(window.saveSnapshot).toHaveBeenCalled(); // Lot 04 — snapshot avant reset
+  });
+  it('Lot 04 — saveSnapshot appelé AVANT setState', async () => {
+    const callOrder = [];
+    vi.stubGlobal('saveSnapshot', vi.fn(() => callOrder.push('saveSnapshot')));
+    setState.mockImplementation(() => callOrder.push('setState'));
+    await resetAll();
+    expect(callOrder.indexOf('saveSnapshot')).toBeLessThan(callOrder.indexOf('setState'));
   });
 });
 
 describe('reposComplet', () => {
-  it('confirmé : saveSnapshot + confirmReposComplet (chars maxés) + showUndoBar', async () => {
+  it('confirmé : saveSnapshot + confirmReposComplet (chars maxés)', async () => {
     const c = makeChar({ pvActuel: 10, pmActuel: 0, pcActuel: 0, etat: 'Inconscient' });
     state.chars = [c];
     await reposComplet();
@@ -553,7 +603,6 @@ describe('reposComplet', () => {
     expect(c.pmActuel).toBe(c.pmMax);
     expect(c.pcActuel).toBe(c.pcMax);
     expect(c.etat).toBe('Normal');
-    expect(window.showUndoBar).toHaveBeenCalled();
   });
 });
 

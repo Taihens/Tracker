@@ -1,4 +1,4 @@
-const CACHE='anathazerín-v8';
+const CACHE='anathazerín-v9';
 self.addEventListener('install',e=>{
   e.waitUntil(caches.open(CACHE).then(c=>c.add('.')));
 });
