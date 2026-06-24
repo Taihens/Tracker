@@ -1,12 +1,14 @@
-// ═══════════════════════════════════════════════════════════════
+﻿// ═══════════════════════════════════════════════════════════════
 //  GEMINI ASSISTANT
 // ═══════════════════════════════════════════════════════════════
 import { state, appMode, selectedPlayerChar } from '../state.js';
 import { parseMod } from '../cof-classes.js';
 import { save } from '../firebase.js';
 import { getCOFRulesText } from './cof-import.js';
+import { loadRAGIndexes, queryRAG } from './rag.js';
 
 export const GEMINI_URL='https://taihen.keifer-gianfr.workers.dev';
+let _sendAiAbortCtrl = null;
 export function getGeminiKey(){ return sessionStorage.getItem('anathazer_gemini_key')||''; }
 export function setGeminiKey(k){ sessionStorage.setItem('anathazer_gemini_key',k.trim()); }
 export let aiConversations={}, aiActiveChar=null, aiCtx={fiches:true,combat:true,etats:false};
@@ -114,7 +116,18 @@ export function buildAiContext(){
       }
     });
   }
-  if(aiCtx.combat){ctx+=`\n--- COMBAT ---\n${document.getElementById('g-cname')?.value||'Combat en cours'} | S${state.session} C${state.combat} R${state.round}\n`;}
+  if(aiCtx.combat){
+    ctx+=`\n--- COMBAT ---\n${document.getElementById('g-cname')?.value||'Combat en cours'} | S${state.session} C${state.combat} R${state.round}\n`;
+    const combatLogs=state.log.filter(l=>l.session===state.session&&l.cbt===state.combat).slice(-10);
+    if(combatLogs.length){
+      ctx+='\n--- 10 DERNIERS ÉVÉNEMENTS DE COMBAT ---\n';
+      combatLogs.forEach(l=>{
+        const sign=l.ev==='Dégâts'?'-':'+';
+        const src=l.source?` (${l.source})`:'';
+        ctx+=`Round ${l.rnd}: ${l.charName} — ${l.ev} ${sign}${l.val}${src} | PV: ${l.pv}\n`;
+      });
+    }
+  }
   if(aiCtx.etats){const actifs=state.chars.filter(c=>c.etat!=='Normal');if(actifs.length){ctx+='\n--- ÉTATS ACTIFS ---\n';actifs.forEach(c=>ctx+=`${c.name}: ${c.etat}\n`);}}
   return ctx;
 }
@@ -161,7 +174,7 @@ Règle de ton : concis comme une note de combat, pas comme un tutoriel. Donne le
         model:'gemini-2.5-flash',
         system_instruction:{parts:[{text:sysPrompt}]},
         contents:[{role:'user',parts:[{text:prompt}]}],
-        generationConfig:{maxOutputTokens:2048,temperature:0.5}
+        generationConfig:{maxOutputTokens:2048,temperature:0.5,thinkingConfig:{thinkingBudget:0}}
       })
     });
     const data=await res.json();
@@ -220,6 +233,7 @@ export function useFicheResume(charId){
 }
 export function initAssistantTab(){
   const el=document.getElementById('ai-ctx-btns');if(!el)return;
+  loadRAGIndexes();
   el.innerHTML=[{k:'fiches',l:'Fiches PJs'},{k:'combat',l:'Combat actuel'},{k:'etats',l:'États'}].map(b=>`<button class="ai-ctx-btn${aiCtx[b.k]?' on':''}" onclick="toggleAiCtx('${b.k}',this)">${b.l}</button>`).join('');
   const charSel=document.getElementById('ai-char-sel');
   if(charSel){
@@ -259,6 +273,8 @@ export async function sendAI(){
   chat.innerHTML+=`<div class="ai-msg thinking" id="ai-thinking">✦ Consultation des règles...</div>`;
   chat.scrollTop=chat.scrollHeight;
   document.getElementById('ai-send-btn').disabled=true;
+  if (_sendAiAbortCtrl) _sendAiAbortCtrl.abort();
+  _sendAiAbortCtrl = new AbortController();
   const ctx=buildAiContext();
   // Load COF rules — Firebase first, fallback to hardcoded
   const cofRules=await getCOFRulesText();
@@ -271,8 +287,9 @@ export async function sendAI(){
     const pc=state.chars.find(c=>c.id===selectedPlayerChar);
     if(pc) playerSheet=`\n=== FICHE DU JOUEUR (contexte prioritaire pour ses questions) ===\n${JSON.stringify(pc,null,1)}\n`;
   }
-  const systemText=rulesSection+playerSheet+(ctx?'\n'+ctx:'');
-  const visibleMsgs=msgs.filter(m=>m.role==='user'||m.role==='model');
+  let systemText=rulesSection+playerSheet+(ctx?'\n'+ctx:'');
+  const ragCtx=await queryRAG(msg);if(ragCtx)systemText=ragCtx+systemText;
+  const visibleMsgs=msgs.filter(m=>m.role==='user'||m.role==='model').slice(-20);
   const contents=[
     ...visibleMsgs.slice(0,-1).map(m=>({role:m.role,parts:[{text:m.text}]})),
     {role:'user',parts:[{text:msg}]},
@@ -280,11 +297,12 @@ export async function sendAI(){
   try{
     const res=await fetch(GEMINI_URL,{
       method:'POST',headers:{'Content-Type':'application/json'},
+      signal:_sendAiAbortCtrl?.signal,
       body:JSON.stringify({
         model:'gemini-2.5-flash',
         system_instruction:{parts:[{text:systemText}]},
         contents,
-        generationConfig:{maxOutputTokens:8192,temperature:0.7}
+        generationConfig:{maxOutputTokens:8192,temperature:0.7,thinkingConfig:{thinkingBudget:0}}
       })
     });
     const data=await res.json();
@@ -295,10 +313,48 @@ export async function sendAI(){
     document.getElementById('ai-thinking')?.remove();
     chat.innerHTML+=`<div class="ai-msg assistant">${reply.replace(/</g,'&lt;').replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\*(.*?)\*/g,'<em>$1</em>')}</div>`;
   }catch(err){
+    if(err.name==='AbortError'){document.getElementById('ai-thinking')?.remove();document.getElementById('ai-send-btn').disabled=false;return;} // requête annulée, pas d'erreur UI
     document.getElementById('ai-thinking')?.remove();
     chat.innerHTML+=`<div class="ai-msg assistant" style="color:var(--red3)">Erreur Gemini : ${err.message}<br><button onclick="sendAI()" class="btn btn-g" style="font-size:9px;margin-top:6px">↺ Réessayer</button></div>`;
   }
   document.getElementById('ai-send-btn').disabled=false;chat.scrollTop=chat.scrollHeight;
+}
+export async function generateNarrativeSummary(){
+  const combatLogs=state.log.filter(l=>l.session===state.session&&l.cbt===state.combat);
+  if(!combatLogs.length){window.toast('Aucun log de combat pour ce combat','t-w');return;}
+  const overlay=document.createElement('div');
+  overlay.id='narrative-overlay';
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+  overlay.innerHTML=`<div style="background:var(--bg2);border:1px solid var(--gold3);border-radius:6px;padding:24px;max-width:600px;width:100%;max-height:80vh;overflow-y:auto"><div style="font-family:'Cinzel',serif;color:var(--gold);font-size:13px;margin-bottom:16px">✨ Récit de combat IA</div><div id="narrative-content" style="color:var(--txt);font-size:12px;line-height:1.8">⏳ Génération en cours...</div><div style="margin-top:16px;display:flex;gap:8px"><button class="btn btn-g" style="font-size:9px" id="narrative-copy-btn">📋 Copier</button><button class="btn btn-r" style="font-size:9px" onclick="document.getElementById('narrative-overlay').remove()">✕ Fermer</button></div></div>`;
+  document.body.appendChild(overlay);
+  const chronicle=combatLogs.map(l=>{
+    const sign=l.ev==='Dégâts'?'-':'+';
+    const src=l.source?` (${l.source})`:'';
+    const typ=l.type?` [${l.type}]`:'';
+    return `Round ${l.rnd}: ${l.charName} — ${l.ev} ${sign}${l.val}${src}${typ} | PV: ${l.pv}`;
+  }).join('\n');
+  const prompt=`Voici la chronologie d'un combat (Chroniques Oubliées Fantasy) :\n\n${chronicle}\n\nRédige un récit épique, immersif et romancé de ce combat en français (2-3 paragraphes), mettant en valeur les actions clés. Style JDR héroïque-fantastique.`;
+  try{
+    const res=await fetch(GEMINI_URL,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'gemini-2.5-flash',
+        system_instruction:{parts:[{text:'Tu es un conteur épique expert en récits de JDR heroic fantasy. Réponds uniquement en français.'}]},
+        contents:[{role:'user',parts:[{text:prompt}]}],
+        generationConfig:{maxOutputTokens:2048,temperature:0.8,thinkingConfig:{thinkingBudget:0}},
+      })
+    });
+    const data=await res.json();
+    if(data.error)throw new Error(data.error.message);
+    const narrative=data?.candidates?.[0]?.content?.parts?.[0]?.text||'Aucun récit généré.';
+    const el=document.getElementById('narrative-content');
+    if(el)el.innerHTML=narrative.replace(/</g,'&lt;').replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\*(.*?)\*/g,'<em>$1</em>');
+    const copyBtn=document.getElementById('narrative-copy-btn');
+    if(copyBtn)copyBtn.onclick=()=>{navigator.clipboard.writeText(narrative);window.toast('Récit copié ✓','t-i');};
+  }catch(err){
+    const el=document.getElementById('narrative-content');
+    if(el)el.innerHTML=`<span style="color:var(--red3)">Erreur Gemini : ${err.message}</span>`;
+  }
 }
 export function clearAIChat(){
   setAiMessages([]);

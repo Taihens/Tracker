@@ -12,7 +12,8 @@
     "format": "prettier --write src",
     "test": "vitest run",
     "test:watch": "vitest",
-    "handoff": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/handoff.ps1"
+    "handoff": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/handoff.ps1",
+    "generate-embeddings": "node scripts/generate-embeddings.js"
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",

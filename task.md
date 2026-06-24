@@ -1,147 +1,25 @@
 # task.md — Anathazerïn Tracker
 
-## Lot en cours : Lot 01 — Scaffold + Pipeline [CLOTURÉ]
+## 📋 Lot en cours : Lot 06 — Assistant IA & RAG PDF [CLOTURÉ ✅]
 
 ### Tâches
-- [x] Extraire CSS → src/styles/main.css
-- [x] Extraire JS → src/main.js
-- [x] Réécrire index.html (template pur)
-- [x] package.json, vite.config.js, eslint.config.js, .prettierrc
-- [x] vitest.config.js + tests/smoke.test.js
-- [x] .github/workflows/ci-cd.yml
-- [x] CLAUDE.md, ROADMAP.md, task.md, mailbox
-- [x] Clé Firebase déplacée vers import.meta.env
-- [x] Push feat/refonte-vite
-
-### À faire avant merge main
-- [x] Configurer Vercel (lier repo Tracker) — projet `anathazer-tracker`
-- [x] Ajouter secrets GitHub Actions (VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID, VITE_FIREBASE_*) + env Vercel (prod+preview)
-- [x] Ouvrir PR feat/refonte-vite → main
-- [x] Valider pipeline (CI vert + deploy preview)
-
-### Remédiation pipeline (le Lot 01 était [CLOTURÉ] mais CI jamais vert)
-- [x] `package-lock.json` non tracké → ajouté (requis par `npm ci`)
-- [x] Bug parsing : `setActiveTurn` déclarée 2× → suppression de la version sans garde
-- [x] Bug parsing : `closeCapFull` déclarée 2× → doublon supprimé
-- [x] Bug `no-dupe-keys` : clé `attrs` dupliquée (fallbacks `'—'` écrasés) → fusion des 3 sources
-- [x] Test : `vitest.config.js` exigeait `jsdom` non installé → environnement `node` (smoke tests purs)
-- [x] 14 blocs vides : `catch` Firebase → `console.warn` (R3), lectures locales → `// SILENT-OK`
-- [x] 9 échappements regex inutiles nettoyés
-- [x] 4 doublons racine supprimés (sw.js, manifest.json, icon-192/512.png) = copies de `public/`
-- [x] `.gitignore` dédoublonné + `.claudeignore` créé
-- [x] R1 : CACHE sw.js bumpé v5 → v6
-- Résultat local : lint 0 erreur · test 3/3 · build OK
+- [x] RAG : Créer le script de génération d'embeddings `scripts/generate-embeddings.js` (extraction PDF via `pdftotext` + Embedding API)
+- [ ] RAG : Générer et stocker les fichiers d'embeddings `public/cof_rules_embeddings.json` et `public/cof_campaign_embeddings.json` (scénarios 1-9) — à exécuter manuellement : `npm run generate-embeddings <API_KEY>`
+- [x] RAG : Charger les index RAG dans l'application au démarrage ou à l'ouverture de l'onglet Assistant (`loadRAGIndexes` dans `initAssistantTab`)
+- [x] RAG : Implémenter la recherche vectorielle locale (cosine similarity) dans `src/modules/assistant/rag.js` (module dédié, R5)
+- [x] RAG : Injecter les 3 chunks les plus pertinents dans la question posée à Gemini dans le prompt système (`queryRAG` dans `sendAI`)
+- [x] Contexte Combat : Enrichir `buildAiContext()` dans `gemini.js:117` pour auto-injecter les 10 dernières lignes de logs de combat
+- [x] Récit de Combat : Bouton "✨ Récit de combat IA" (MJ uniquement) dans `messages.js:219` + `generateNarrativeSummary()` avec `thinkingBudget:0`
+- [x] Tests & Qualité : `tests/assistant.test.js` — 12 tests (cosineSimilarity, getTopChunks, buildAiContext) — 161/161 ✅
 
 ---
 
-## Lot précédent : Lot 02a — Déplacement modulaire pur [CLOTURÉ]
-
-### Tâches
-- [x] Déplacer les constantes et magic strings → `src/modules/constants.js` (+ `constants/default-chars.js`)
-- [x] Déplacer les classes COF → `src/modules/cof-classes.js`
-- [x] Créer `src/modules/storage.js` (abstraction `localStorage` pure, sans modif logique)
-- [x] Déplacer la logique d'état sans modif (globals + setters live-binding) → `src/modules/state.js`
-- [x] Déplacer la logique Firebase → `src/modules/firebase.js`
-- [x] Déplacer la logique de dés → `src/modules/dice.js`
-- [x] Déplacer la logique de combat pure → `src/modules/combat.js`
-- [x] Déplacer la logique de messagerie et logs → `src/modules/messages.js`
-- [x] Déplacer la logique de fiches → `src/modules/fiches.js` (barrel) + `fiches/render.js` + `fiches/wizard.js` + `fiches/edit.js`
-- [x] Déplacer la logique de roster/pending chars/mdp → `src/modules/roster.js`
-- [x] Déplacer la logique de recap → `src/modules/recap.js`
-- [x] Déplacer la logique UI & DOM → `src/modules/ui/` (render, tabs, modals, settings, etats, mode, toast)
-- [x] Refactorer `src/main.js` pour importer et orchestrer les modules (210 lignes, R5)
-- [x] Bumper la version `CACHE` dans `public/sw.js` v6 → v7 (R1)
-- [x] Valider localement : lint 0 err · build OK (32 modules) · smoke 3/3 (iso-fonctionnalité stricte)
-- [x] ⚠️ Validation navigateur manuelle (Taihens) : console sans ReferenceError, handlers critiques OK. 2 anomalies (saveEdit, Escape) prouvées pré-existantes → corrigées en bonus (commit `487c005`). Handoff regénéré sur l'état validé.
-
-### Divergences vs liste architecte (organisationnel, esprit du scope — signalé en mailbox)
-- Ajout de modules hors liste pour respecter R5 (<400 l) : `levelup.js` (+`levelup/wizard.js`, `levelup/pending.js`), `assistant.js` (+`assistant/gemini.js`, `assistant/cof-import.js`), `bindings.js`.
-- **Finding window-binding** : `index.html` + template strings appellent ~123 fonctions par nom global → `bindings.js` les expose sur `window` (fonctions exportées) + 3 getters live (`appMode`, `charWizard`, `editData`, réassignées au runtime).
-- **Bug évité (stale-binding)** : `pendingChars`/`pendingLvlUps` réassignés sur sync Firebase → import ES direct (live) au lieu de `window.x` (snapshot obsolète) dans `fiches/wizard.js` et `ui/render.js`.
-- Helpers `fb*` co-localisés dans leur module métier plutôt qu'un `firebase.js` monolithique.
-- Vérif statique anti-bouton-mort : 123 cibles inline + 32 `window.*` toutes couvertes (0 référence morte).
-
----
-
-## Lot précédent : Lot 02b — Tests de caractérisation (Combat) [CLOTURÉ]
-> Filet de sécurité de non-régression sur `src/modules/combat.js` avant les optimisations du Lot 02c.
-
-### Tâches
-- [x] Créer `tests/combat.test.js` (Vitest + happy-dom)
-- [x] Harnais de mocks isolant : `state.js`, `firebase.js` (coupe la chaîne CDN/`import.meta.env`), `cof-classes.js`, `constants.js` + stubs `window.*` UI
-- [x] Caractériser les 18 fonctions exportées (hpClass/hpColor, setDmgType, setEtat, updateCardPV, applyDmg/applyHeal, adjPM/recupPM/adjPC, adjRound, pointRecup, endRound/endCombat/endSession, resetAll/reposComplet/confirmReposComplet, setActiveTurn)
-- [x] Déterminisme : stub `Math.random`/`Date.now` ; fake timers pour l'animation `healing` (900ms)
-- [x] 3 bugs historiques tagués `// TODO: bug historique` (NON corrigés — réservés 02c) : crash DOM non gardé `applyDmg` (combat.js:44), collision `logId` (combat.js:52), `gain` NaN si `niveau` absent (combat.js:117)
-- [x] Audit adversarial (2 agents) post-vert → branches/effets de bord complétés
-- [x] Validation : `npm test` → **69/69 verts** (66 combat + 3 smoke)
-- [x] ⚠️ R5 à arbitrer : `tests/combat.test.js` = 592 lignes (> 400). Arbitrage : Fichier cohésif utilisant un harnais de mock partagé complexe. Accepté exceptionnellement pour éviter la duplication inutile du harnais de test.
-
----
-
-## Lot précédent : Lot 02c — Optimisations & Améliorations [CLOTURÉ]
-> Indexation état O(1), modales promisifiées, imports Firebase statiques, re-rendus ciblés, 3 bugs historiques.
-
-### Tâches
-- [x] Indexation O(1) : `charsMap` + `getChar(id)` (state.js), substitution des `find` linéaires (combat/render/state)
-- [x] Modales promisifiées : `showActionConfirm → Promise<boolean>` ; appelants combat.js + roster.js en async/await (compat `onConfirm`)
-- [x] Imports Firebase statiques via npm ; suppression CDN dynamique (firebase.js, cof-import.js, main.js) ; réexports centralisés
-- [x] Rendu DOM ciblé : `updateCardDOM` (cas A structure / cas B maj) — focus conservé pendant sync
-- [x] 3 bugs historiques : garde DOM `applyDmg`, `logId` unique, fallback `niveau || 1`
-- [x] Fix bonus : garde `state.log` dans `setState` (crash applyDmg si état resync sans clé log)
-- [x] R1 : CACHE `sw.js` v7 → v8
-- [x] Tests : `render.test.js` (5) + maj `combat.test.js` → 74/74 verts ; lint 0 err ; build OK
-- [x] Validation navigateur (Taihens) : 5 volets OK (`docs/verif_navigateur_lot02c.md`)
-- [x] Handoff `handoff04_lot02c.zip` (§5) ; mailbox clôture émise ; prompt 02c renommé `-clos`
-- [x] Commit `489ca29`
-
-### Hors périmètre (remonté à Gémi)
-- Undo permanent / bouton physique (5 actions + resetAll) → lot dédié (spec Gémi reçue)
-- Point de Récupération individuel par perso → en attente spec
-- 3 fichiers reformatés cosmétiquement (index.html, ui/mode.js, styles/main.css) exclus du commit → chore format ou revert à arbitrer
-
----
-
-## Lot précédent : Lot 02d — Reste des tests unitaires [CLOTURÉ]
-> Tests unitaires restants (dés, stockage et état) — couverture complète sans modification de production.
-
-### Tâches
-- [x] Créer `tests/state.test.js` — 20 tests : `rebuildCharsMap`, `getChar` (O(1) + fallback linéaire), `setState` (guard log Firebase), `initHistory` (idempotent), `pushHistory` (troncature future), `undoChar` (log, render, toast, renderLog conditionnel), `redoChar`
-- [x] Créer `tests/storage.test.js` — 19 tests : `loadState` (v4 nominal, migration v3, JSON corrompu, s.chars absent, fusion voies/armes, migration att→3att, etats/lvlUpHistory), `loadSettings` (defaults, fusion, corrompu), `saveSettings` (DOM checkboxes), `applyTheme` (data-theme, settings, localStorage, renderThemeGrid), `getCharPwds/setCharPwds`, `getPmAttrPref/setPmAttrPref` (isolation par perso)
-- [x] Créer `tests/dice.test.js` — 22 tests : `dieSVG` (d4/d6/d20/d100), `initDiceSVG` (idempotent), `selectDie` (active-die exclusif), `rollDice` (nominal/crit/fumble/mod/diceHistory/plafond 100), `updateDiceStats` (vide/moyenne-meilleur-pire/distribution d20), keydown Enter
-- [x] Validation : **135/135** tests verts (74 existants + 61 nouveaux) · lint 0 err · build OK
-- [x] Handoff `handoff05_lot02d.zip`
-
----
-
-## Lot en cours : Lot 05 — Qualité de vie, Offline & Sécurité [CLOTURÉ]
-> Fix DV Chevalier, protections XSS, PIN PBKDF2, clé Gemini sessionStorage, tri initiative, badges d'états, notes rapides adaptatives.
-
-### Tâches
-- [x] Fix DV Chevalier : D8 → D10 dans `src/modules/cof-classes.js`
-- [x] `esc(s)` exportée dans `messages.js` — protection XSS sur logs (renderLog), messages (renderMessages, sendMessage optimiste) et récap (recap.js)
-- [x] Auto-migration UUID logs dans `setState` — garantit `logId` sur toutes les entrées héritées
-- [x] PIN PBKDF2 dans `mode.js` — `hashPin()` async, `enterMJ` / `enterMJwithPin` / `savePin` async, rétrocompat PIN clair
-- [x] Clé API Gemini déplacée de `localStorage` → `sessionStorage` dans `gemini.js`
-- [x] `sortCharsByInitiative()` + `updateCharNotes()` exportées dans `combat.js`
-- [x] Bouton `⇅ Tri Initiative` dans `#mj-act-row` (index.html)
-- [x] Badge d'état dans `cardHTML` et `updateCardDOM` (`render.js`) — tooltip + classe `.sev`
-- [x] Textarea adaptatif `card-quick-notes` dans `cardHTML` — `field-sizing:content` + fallback JS `scrollHeight`
-- [x] Styles CSS : `.btn-sort-init`, `.etat-badge`, `.etat-badge.sev`, `.card-quick-notes`
-- [x] R1 : CACHE `sw.js` v9 → v10
-- [x] Tests : +14 tests (7 combat, 2 state) → **149/149 verts** · lint 0 erreur · build OK
-- [x] Validation navigateur Taihens : DV D10 ✅ · badges état ✅ · notes ✅ · tri initiative ✅ · PIN PBKDF2 ✅
-- [x] Handoff `handoff07_lot05.zip`
-
----
-
-## Lot précédent : Lot 04 — Améliorations UX Combat (Undo & Récupération) [CLOTURÉ]
-> Implémentation du bouton physique d'annulation globale permanent (MJ et Joueur) et d'un bouton de Point de Récupération individuel par carte.
-
-### Tâches
-- [x] HTML & CSS : Bouton `#btn-undo-last` dans `#mj-act-row`, suppression de `#undo-bar` obsolète, styles `.btn-undo-last`
-- [x] Logique d'Annulation (Undo) dans `src/modules/ui/modals.js` : Snapshot complet de l'état (chars, log, etats, lvlUpHistory, charHistory), masquage/affichage conditionnel du bouton d'annulation
-- [x] Visibilité du Bouton dans `src/modules/ui/mode.js` : Mise à jour de l'affichage du bouton d'annulation lors des changements de mode
-- [x] Point de Récupération Individuel : Helper privé `performPointRecup(c)` et exportation de `pointRecupChar(id)` dans `src/modules/combat.js`, bouton `✦ Récup.` par carte dans `render.js` (désactivé si KO ou PV max)
-- [x] Intégration Combat : Nettoyage des anciens appels `window.showUndoBar(...)`, appel de `window.saveSnapshot()` au début de `resetAll()`
-- [x] Tests Unitaires & Linting : Nettoyage des assertions legacy, ajout de tests unitaires pour `pointRecupChar(id)` et `saveSnapshot` dans `tests/combat.test.js`, validation de tous les tests unitaires (142/142 tests verts), lint 0 erreur
-- [x] Handoff `handoff06_lot04.zip`
+## 🏛️ Historique des Lots [CLOTURÉS]
+* **Lot 01 — Scaffold + Pipeline** : Clôturé ✅ (Commit base refonte Vite)
+* **Lot 02a — Déplacement modulaire pur** : Clôturé ✅ (32 modules ES6 autonomes)
+* **Lot 02b — Tests de caractérisation (Combat)** : Clôturé ✅ (69 tests unitaires combat)
+* **Lot 02c — Optimisations & Améliorations** : Clôturé ✅ (Indexation O(1), Modales promesses, Firebase npm)
+* **Lot 02d — Reste des tests unitaires** : Clôturé ✅ (135 tests unitaires)
+* **Lot 04 — Améliorations UX Combat (Undo & Récupération)** : Clôturé ✅ (Bouton Undo global, point de récup individuel)
+* **Lot 05 — Qualité de vie, Offline & Sécurité** : Clôturé ✅ (PBKDF2, notes adaptatives, tri initiative, XSS, Chevalier DV)
+* **Lot 06 — Assistant IA & RAG PDF** : Clôturé ✅ (RAG 3 526 chunks, logs combat auto-injectés, récit narratif IA, Worker sans clé client)

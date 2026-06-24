@@ -15,6 +15,10 @@ coverage/
 handoff/
 *.patch
 
+# Index RAG (générés hors-ligne, ~134 Mo — régénérer avec npm run generate-embeddings)
+public/cof_rules_embeddings.json
+public/cof_campaign_embeddings.json
+
 # Divers
 *.log
 .DS_Store

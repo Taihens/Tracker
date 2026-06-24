@@ -1,4 +1,4 @@
-// ── COF RULES IMPORT ──
+﻿// ── COF RULES IMPORT ──
 import { COF_PAGES, COF_RACES_INDEX } from '../constants.js';
 import { firebaseDB, _fbConnected, set, get, remove, ref } from '../firebase.js';
 
@@ -115,10 +115,11 @@ export async function importCOFRules(){
       failed.push(url);
       if(pi>=0) pageStatus[pi].ok=false;
     }
-    // Sauvegarde progressive toutes les 3 pages
-    if(results.length>0&&(results.length%3===0||i===COF_PAGES.length-1)){
-      const partial=results.join('\n');
-      window._cofRulesText=partial;
+    // Mise à jour window._cofRulesText à chaque page pour permettre la reprise sur erreur
+    window._cofRulesText=results.join('\n');
+    // Sauvegarde Firebase toutes les 15 pages (réduit l'envoi exponentiel)
+    if(results.length>0&&(results.length%15===0||i===COF_PAGES.length-1)){
+      const partial=window._cofRulesText;
       if(firebaseDB&&_fbConnected){
         try{
           await set(ref(firebaseDB,'cof_rules'),{text:partial,imported:Date.now(),pages:results.length,failed:failed.length});
@@ -147,7 +148,7 @@ export async function importCOFRules(){
     if(reglesText.includes(`=== ${reglesIndexLabel} ===`)){
       const reglesLinks=[...new Set(reglesText.match(/\/fr\/jeu\/regles\/[a-z0-9/-]+/g)||[])];
       const reglesUrls=reglesLinks.map(p=>`https://www.co-drs.org${p}`)
-        .filter(u=>!COF_PAGES.includes(u)); // évite les doublons avec pages déjà dans la liste
+        .filter(u=>!COF_PAGES.includes(u)).slice(0,30); // évite les doublons avec pages déjà dans la liste
       for(const rUrl of reglesUrls){
         if(_cofImportStopped) break;
         const rLabel=rUrl.split('/').slice(-2).join('/');
@@ -177,7 +178,7 @@ export async function importCOFRules(){
     if(racesText){
       // Extraire les liens /fr/jeu/races/[slug] de la page index
       const raceLinks=[...new Set(racesText.match(/\/fr\/jeu\/races\/[a-z0-9-]+/g)||[])];
-      const raceUrls=raceLinks.map(p=>`https://www.co-drs.org${p}`).filter(u=>u!==COF_RACES_INDEX);
+      const raceUrls=raceLinks.map(p=>`https://www.co-drs.org${p}`).filter(u=>u!==COF_RACES_INDEX).slice(0,30);
       for(const raceUrl of raceUrls){
         if(_cofImportStopped) break;
         const raceLabel=raceUrl.split('/').slice(-2).join('/');

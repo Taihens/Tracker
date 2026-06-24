@@ -216,7 +216,8 @@ export function renderLog(){
   const evClass=ev=>ev==='Dégâts'?'td-d':ev==='Soin'?'td-h':ev.includes('PM')?'td-pm':'td-pc';
   const evSign=ev=>ev==='Dégâts'?'-':ev==='Soin'?'+':ev.includes('dépensé')?'-':'+';
   const rows=[...f].reverse().map(l=>`<tr><td class="td-dim">${esc(l.charName)}</td><td class="${evClass(l.ev)}">${l.ev}</td><td class="${evClass(l.ev)}">${evSign(l.ev)}${l.val}</td><td class="td-dim">${esc(l.source||'—')}</td><td class="td-dim">${esc(l.type||'—')}</td><td class="td-dim">Session ${l.session}</td><td class="td-dim">Combat ${l.cbt}</td><td class="td-dim">Round ${l.rnd}</td><td class="td-pv">${l.pv}</td><td><button class="btn-del-row" onclick="deleteLogEntry(${l.logId||l.ts})">✕</button></td></tr>`).join('');
-  document.getElementById('log-tbl').innerHTML=`<div style="margin-bottom:9px"><button class="btn-clear-log" onclick="clearLog()">✕ Vider${activeLogChar===0?'':" le journal de "+who}</button></div><table><thead><tr><th>PJ</th><th>Événement</th><th>Valeur</th><th>Source</th><th>Type</th><th>Session</th><th>Combat</th><th>Round</th><th>PV rest.</th><th></th></tr></thead><tbody>${rows}</tbody></table>`;
+  const narrativeBtn=appMode==='mj'?`<button class="btn btn-g" style="font-size:9px;margin-left:8px" onclick="generateNarrativeSummary()">✨ Récit de combat IA</button>`:'';
+  document.getElementById('log-tbl').innerHTML=`<div style="margin-bottom:9px"><button class="btn-clear-log" onclick="clearLog()">✕ Vider${activeLogChar===0?'':" le journal de "+who}</button>${narrativeBtn}</div><table><thead><tr><th>PJ</th><th>Événement</th><th>Valeur</th><th>Source</th><th>Type</th><th>Session</th><th>Combat</th><th>Round</th><th>PV rest.</th><th></th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 export function switchLog(id){setActiveLogChar(id);renderLog();}
 export function clearLog(){
