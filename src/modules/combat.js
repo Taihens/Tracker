@@ -152,6 +152,18 @@ export function pointRecup() {
   window.toast('✦ Point de Récupération appliqué — voir le journal', 't-h');
 }
 
+// ── TRI & NOTES ──
+export function sortCharsByInitiative() {
+  window.saveSnapshot();
+  state.chars.sort((a, b) => (parseInt(b.init, 10) || 0) - (parseInt(a.init, 10) || 0));
+  save(); window.render();
+}
+export function updateCharNotes(id, value) {
+  const c = getChar(id); if (!c) return;
+  c.notes = value;
+  save();
+}
+
 // ── FIN DE ROUND / COMBAT / SESSION / REPOS / RESET ──
 export async function endRound() {
   if (await window.showActionConfirm('↷', 'Fin de Round', `Passer au Round ${state.round + 1} ?`)) {

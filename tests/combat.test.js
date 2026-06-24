@@ -43,6 +43,7 @@ import {
   hpClass, hpColor, setDmgType, setEtat, updateCardPV, applyDmg, applyHeal,
   adjPM, recupPM, adjPC, adjRound, pointRecup, pointRecupChar, endRound, endCombat, endSession,
   resetAll, reposComplet, confirmReposComplet, setActiveTurn,
+  sortCharsByInitiative, updateCharNotes,
 } from '../src/modules/combat.js';
 import { state, cardTypes, setState, setCharHistory, pushHistory } from '../src/modules/state.js';
 import { save } from '../src/modules/firebase.js';
@@ -651,5 +652,45 @@ describe('setActiveTurn', () => {
     setActiveTurn(1);
     expect(save).toHaveBeenCalled();
     expect(window.render).toHaveBeenCalled();
+  });
+});
+
+describe('sortCharsByInitiative — Lot 05', () => {
+  it('trie les chars par init décroissant', () => {
+    state.chars = [
+      makeChar({ id: 1, init: '5' }),
+      makeChar({ id: 2, init: '12' }),
+      makeChar({ id: 3, init: '8' }),
+    ];
+    sortCharsByInitiative();
+    expect(state.chars.map(c => c.id)).toEqual([2, 3, 1]);
+  });
+  it('init absent traité comme 0', () => {
+    state.chars = [makeChar({ id: 1, init: undefined }), makeChar({ id: 2, init: '3' })];
+    sortCharsByInitiative();
+    expect(state.chars[0].id).toBe(2);
+  });
+  it('appelle saveSnapshot, save, render', () => {
+    state.chars = [makeChar()];
+    sortCharsByInitiative();
+    expect(window.saveSnapshot).toHaveBeenCalled();
+    expect(save).toHaveBeenCalled();
+    expect(window.render).toHaveBeenCalled();
+  });
+});
+
+describe('updateCharNotes — Lot 05', () => {
+  it('met à jour c.notes et appelle save (sans render)', () => {
+    const c = makeChar({ id: 1 });
+    state.chars = [c];
+    updateCharNotes(1, 'attaque flanc');
+    expect(c.notes).toBe('attaque flanc');
+    expect(save).toHaveBeenCalled();
+    expect(window.render).not.toHaveBeenCalled();
+  });
+  it('no-op si id inconnu', () => {
+    state.chars = [];
+    updateCharNotes(99, 'test');
+    expect(save).not.toHaveBeenCalled();
   });
 });

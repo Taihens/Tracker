@@ -50,9 +50,14 @@ export function updateCardDOM(c){
   card.classList.toggle('dead-card',c.etat==='Mort');
   card.classList.toggle('active-turn',state.activeTurn===c.id);
 
-  // Nom + sous-titre (avec span "Lvl Up en attente" côté joueur)
+  // Nom + badge d'état + sous-titre
   const nameEl=card.querySelector('.c-name');
-  if(nameEl) nameEl.textContent=c.name;
+  if(nameEl){
+    const isBadDOM=c.etat!=='Normal';
+    const curEtatDOM=isBadDOM?(state.etats||[]).find(e=>e.name===c.etat):null;
+    const badgeHTML=curEtatDOM?`<span class="etat-badge${curEtatDOM.sev?' sev':''}" title="${curEtatDOM.effect||''}">${c.etat}</span>`:'';
+    nameEl.innerHTML=c.name+badgeHTML;
+  }
   const subEl=card.querySelector('.c-sub');
   if(subEl){
     const lvlSpan=(appMode==='joueur'&&c.id===selectedPlayerChar&&pendingLvlUps[c.id])
@@ -109,6 +114,10 @@ export function updateCardDOM(c){
   const recupBtn=card.querySelector('#recup-btn-'+c.id);
   if(recupBtn) recupBtn.disabled=(c.pvActuel===0||c.pvActuel>=c.pvMax);
 
+  // Notes rapides (sync seulement si valeur différente pour préserver le focus)
+  const notesEl=card.querySelector('#notes-'+c.id);
+  if(notesEl && notesEl.value!==(c.notes||'')) notesEl.value=c.notes||'';
+
   // Undo / redo + compteur
   const h=charHistory[c.id]||{pos:0,snapshots:[{pvActuel:c.pvActuel,etat:c.etat}]};
   const len=h.snapshots.length-1;
@@ -138,9 +147,11 @@ export function cardHTML(c){
     pcHTML=`<div class="pm-row"><span class="pm-label">PC</span><div class="pc-dots">${dots}</div><span class="pc-val">${c.pcActuel}/${c.pcMax}</span><button class="btn-xs btn-xs-pu" onclick="adjPC(${c.id},-1)">−</button><button class="btn-xs btn-xs-pu" onclick="adjPC(${c.id},1)">+</button></div>`;
   }
 
+  const curEtat=isBad?(state.etats||[]).find(e=>e.name===c.etat):null;
+  const etatBadge=curEtat?`<span class="etat-badge${curEtat.sev?' sev':''}" title="${curEtat.effect||''}">${c.etat}</span>`:'';
   return`<div class="card${c.pvActuel<=0?' ko':''}${c.etat==='Mort'?' dead-card':''}${state.activeTurn===c.id?' active-turn':''}" id="card-${c.id}">
   <div class="c-header">
-    <div><div class="c-name">${c.name}</div><div class="c-sub">${c.classe} ${c.race}${appMode==='joueur'&&c.id===selectedPlayerChar&&pendingLvlUps[c.id]?' <span style="font-family:Cinzel,serif;font-size:7px;color:var(--gold);border:1px solid var(--gold);padding:1px 5px;border-radius:2px">⏳ Lvl Up en attente</span>':''}</div></div>
+    <div><div class="c-name">${c.name}${etatBadge}</div><div class="c-sub">${c.classe} ${c.race}${appMode==='joueur'&&c.id===selectedPlayerChar&&pendingLvlUps[c.id]?' <span style="font-family:Cinzel,serif;font-size:7px;color:var(--gold);border:1px solid var(--gold);padding:1px 5px;border-radius:2px">⏳ Lvl Up en attente</span>':''}</div></div>
     <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
       <div class="c-badge">Niv. ${c.niveau}</div>
       <button class="btn-turn${state.activeTurn===c.id?' on':''}" onclick="setActiveTurn(${c.id})">${state.activeTurn===c.id?'▶ Tour':'◦ Tour'}</button>
@@ -176,6 +187,7 @@ export function cardHTML(c){
       <button class="btn btn-g" id="recup-btn-${c.id}" onclick="pointRecupChar(${c.id})"${(c.pvActuel === 0 || c.pvActuel >= c.pvMax) ? ' disabled' : ''} title="Appliquer un point de récupération individuel (DV + CON + Niveau)">✦ Récup.</button>
     </div>
   </div>
+  <textarea class="card-quick-notes" id="notes-${c.id}" placeholder="Notes rapides..." oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px';updateCharNotes(${c.id},this.value)">${c.notes||''}</textarea>
   <div class="undo-row">
     <button class="btn-undo" onclick="undoChar(${c.id})"${canUndo?'':' disabled'}>↩</button>
     <span class="undo-pos">${h.pos}/${h.snapshots.length-1}</span>

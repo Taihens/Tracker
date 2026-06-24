@@ -7,8 +7,8 @@ import { save } from '../firebase.js';
 import { getCOFRulesText } from './cof-import.js';
 
 export const GEMINI_URL='https://taihen.keifer-gianfr.workers.dev';
-export function getGeminiKey(){ return localStorage.getItem('anathazer_gemini_key')||''; }
-export function setGeminiKey(k){ localStorage.setItem('anathazer_gemini_key',k.trim()); }
+export function getGeminiKey(){ return sessionStorage.getItem('anathazer_gemini_key')||''; }
+export function setGeminiKey(k){ sessionStorage.setItem('anathazer_gemini_key',k.trim()); }
 export let aiConversations={}, aiActiveChar=null, aiCtx={fiches:true,combat:true,etats:false};
 export const COF_RULES=`Tu es un assistant expert en Chroniques Oubliées Fantasy (COF). Tu aides les joueurs et le MJ pendant leurs sessions de jeu. Réponds toujours en français, de manière concise et précise.
 
@@ -315,7 +315,7 @@ export function saveGeminiKey(){
 }
 export function clearGeminiKey(){
   if(!confirm('Effacer la clé Gemini ?'))return;
-  localStorage.removeItem('anathazer_gemini_key');
+  sessionStorage.removeItem('anathazer_gemini_key');
   renderGeminiKeyStatus();
   window.toast('Clé Gemini effacée','t-i');
 }

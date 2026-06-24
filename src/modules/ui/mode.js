@@ -3,6 +3,18 @@ import { resetMsgListeners, fbListenMessages } from '../messages.js';
 import { _fbConnected } from '../firebase.js';
 import { updateUndoButtonVisibility } from './modals.js';
 
+async function hashPin(pin, saltHex = null) {
+  const encoder = new TextEncoder();
+  const salt = saltHex
+    ? new Uint8Array(saltHex.match(/.{2}/g).map(b => parseInt(b, 16)))
+    : crypto.getRandomValues(new Uint8Array(16));
+  const baseKey = await crypto.subtle.importKey('raw', encoder.encode(pin), { name: 'PBKDF2' }, false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' }, baseKey, 256);
+  const hashHex = Array.from(new Uint8Array(bits)).map(b => b.toString(16).padStart(2, '0')).join('');
+  const storedSaltHex = Array.from(salt).map(b => b.toString(16).padStart(2, '0')).join('');
+  return `${storedSaltHex}:${hashHex}`;
+}
+
 export function openModeModal(){
   if(appMode==='mj'){
     // MJ clicking badge → directly open char select as player (loses MJ privileges)
@@ -27,21 +39,31 @@ export function showPlayerSection(){
   openCharSelect();
 }
 export function enterMJ(){
-  const pin=localStorage.getItem('anathazer_pin');
-  // Si PIN déjà validé cette session, passer directement
-  if(pin&&sessionStorage.getItem('anathazer_session_pin')===pin){setMode('mj');return;}
-  if(pin){ document.getElementById('mj-pin-section').classList.add('show'); return; }
+  const stored=localStorage.getItem('anathazer_pin');
+  if(stored&&sessionStorage.getItem('anathazer_session_pin')==='ok'){setMode('mj');return;}
+  if(stored){ document.getElementById('mj-pin-section').classList.add('show'); return; }
   setMode('mj');
 }
-export function enterMJwithPin(){
-  const pin=localStorage.getItem('anathazer_pin');
+export async function enterMJwithPin(){
+  const stored=localStorage.getItem('anathazer_pin');
   const input=document.getElementById('mj-pin-input').value;
-  if(pin&&input!==pin){ document.getElementById('pin-error').style.display='block'; return; }
+  if(stored){
+    let valid=false;
+    if(stored.includes(':')){
+      // PBKDF2: sel:hash stocké — dériver avec le même sel
+      const [saltHex]=stored.split(':');
+      const derived=await hashPin(input,saltHex);
+      valid=(derived===stored);
+    } else {
+      // Rétrocompat : ancien PIN en clair
+      valid=(input===stored);
+    }
+    if(!valid){ document.getElementById('pin-error').style.display='block'; return; }
+  }
   document.getElementById('pin-error').style.display='none';
   document.getElementById('mj-pin-input').value='';
   document.getElementById('mj-pin-section').classList.remove('show');
-  // Sauvegarder le PIN validé en session
-  if(pin) sessionStorage.setItem('anathazer_session_pin',pin);
+  if(stored) sessionStorage.setItem('anathazer_session_pin','ok');
   setMode('mj');
 }
 export function setMode(mode){
@@ -111,10 +133,11 @@ export function createPlayerChar(){
   window.openCharWizard();
 }
 export function changePlayerChar(){ openCharSelect(); }
-export function savePin(){
+export async function savePin(){
   const v=document.getElementById('pin-input').value;
   if(!v){ clearPin(); return; }
-  localStorage.setItem('anathazer_pin',v);
+  const hashed=await hashPin(v);
+  localStorage.setItem('anathazer_pin',hashed);
   document.getElementById('pin-input').value='';
   document.getElementById('pin-status').textContent='PIN sauvegardé ✓';
   window.toast('PIN MJ sauvegardé','t-i');

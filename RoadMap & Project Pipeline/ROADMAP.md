@@ -69,15 +69,13 @@ PWA TTRPG (Chroniques Oubliées Fantasy) — suivi de combat MJ/Joueurs, dés, f
   - *Gestion de la visibilité Undo* : bouton visible uniquement si snapshot disponible (MJ et Joueur).
   - *Point de Récupération individuel* : bouton `✦ Récup.` par carte, désactivé si KO ou PV max. Helper `performPointRecup` factorisé.
 
-### 📋 Lot 05 — Qualité de vie, Offline & Sécurité (Quick Wins) [PLANIFIÉ]
-**Objectif** : Résoudre les vulnérabilités de sécurité critiques (XSS, PIN, clés), activer la persistance locale et implémenter des améliorations ergonomiques simples.
-- **Fonctionnalités** :
-  - *Sécurité & Surface d'attaque (F2, F8, F9)* : Échappement HTML complet (`esc(s)`) pour l'affichage du log et de la messagerie ; restriction des bindings `window` aux fonctions strictement requises par le DOM avec gardes `appMode !== 'mj'`.
-  - *Protection des données (F3, F10)* : Hachage SHA-256 du code PIN MJ via l'API Web Crypto ; migration de la clé d'API Gemini du `localStorage` vers le `sessionStorage` (perdue à la fermeture de l'onglet).
-  - *Service Worker & Build (F1, F4, F12)* : Désactivation de VitePWA au profit du SW artisanal `public/sw.js` (corrige le conflit de double SW) ; suppression du bloc d'auto-désinstallation du SW dans `index.html` ; retrait des sourcemaps en production.
-  - *Migration d'historique (F13)* : Migration dans `loadState` pour assigner un UUID (`crypto.randomUUID()`) à toute entrée de log héritée dépourvue de `logId`.
-  - *Firebase Offline-First* : Activation de `enableIndexedDbPersistence()` pour les mutations immédiates hors-ligne.
-  - *Ergonomie* : Tri automatique par initiative, badges visuels d'états avec tooltips de règles au survol, et champ de saisie de notes rapides éphémères sur les cartes de combat.
+### ✅ Lot 05 — Qualité de vie, Offline & Sécurité [CLOTURÉ]
+**Objectif** : Résoudre les vulnérabilités de sécurité critiques (XSS, PIN, clés) et implémenter des améliorations ergonomiques.
+- **Livré** : 14 fichiers · **149/149 tests** · lint 0 err · build OK · CACHE v10. Validation navigateur Taihens : ✅ OK (DV D10, badges état, notes, tri initiative, PIN PBKDF2, XSS). Handoff `handoff07_lot05.zip`.
+- **Sécurité** : `esc(s)` dans `messages.js` — XSS bloqué sur logs, messages et récap. PIN MJ hashé PBKDF2 (100k itérations, sel aléatoire 16 octets) via Web Crypto API, rétrocompat PIN clair. Clé Gemini migrée `localStorage` → `sessionStorage`.
+- **Données** : Auto-migration UUID (`crypto.randomUUID()`) sur toutes les entrées de log sans `logId` dans `setState`.
+- **Ergonomie** : `sortCharsByInitiative()` + bouton `⇅ Tri Initiative` (undoable). Badges d'état inline sur les cartes (tooltip mécanique, classe `.sev` pour états critiques). Textarea notes rapides adaptatif (`field-sizing:content`) par carte, persisté sans re-render global.
+- **Note Offline-First** : `enableIndexedDbPersistence()` inexistante sur Realtime Database (API Firestore uniquement) — comportement offline déjà assuré par le double-save localStorage existant, documenté à la place d'une fausse implémentation.
 
 ### 📋 Lot 06 — Assistant IA & RAG PDF [PLANIFIÉ]
 **Objectif** : Intégrer les PDF de COF sous forme de base de connaissances (RAG) et automatiser l'intégration du contexte pour l'assistant Gemini.

@@ -6,6 +6,8 @@ import { state, appMode, selectedPlayerChar, activeLogChar, setActiveLogChar } f
 import { firebaseDB, _fbConnected, save, ref, push, update, onValue, get, set, remove } from './firebase.js';
 import { hpColor } from './combat.js';
 
+export function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
 let msgUnread=0;
 
 export function getMsgKey(charId){
@@ -110,7 +112,7 @@ export async function renderMessages(){
       const readStatus=(isMine&&m.readAt)?`<span style="font-size:9px;color:var(--grn3)"> ✓✓ Lu</span>`:'';
       return`<div style="display:flex;flex-direction:column;align-items:${isMine?'flex-end':'flex-start'}">
         <div style="background:${isMine?'rgba(200,147,64,.15)':'var(--bg3)'};border:1px solid ${isMine?'var(--gold)':'var(--bdr)'};border-radius:${isMine?'8px 8px 0 8px':'8px 8px 8px 0'};padding:8px 12px;max-width:85%">
-          <div style="font-size:12px;color:var(--txt);line-height:1.5">${m.text.replace(/</g,'&lt;').replace(/\n/g,'<br>')}</div>
+          <div style="font-size:12px;color:var(--txt);line-height:1.5">${esc(m.text).replace(/\n/g,'<br>')}</div>
         </div>
         <div style="font-size:9px;color:var(--txt3);margin-top:2px">${senderName} · ${date} ${time}${readStatus}</div>
       </div>`;
@@ -147,7 +149,7 @@ export async function sendMessage(){
   const time=new Date(msg.ts).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
   const tmpDiv=document.createElement('div');
   tmpDiv.style.cssText='display:flex;flex-direction:column;align-items:flex-end';
-  tmpDiv.innerHTML=`<div style="background:rgba(200,147,64,.15);border:1px solid var(--gold);border-radius:8px 8px 0 8px;padding:8px 12px;max-width:85%"><div style="font-size:12px;color:var(--txt);line-height:1.5">${msg.text.replace(/</g,'&lt;').replace(/\n/g,'<br>')}</div></div><div style="font-size:9px;color:var(--txt3);margin-top:2px">${appMode==='mj'?'MJ':state.chars.find(c=>c.id===charId)?.name||'?'} · ${time}</div>`;
+  tmpDiv.innerHTML=`<div style="background:rgba(200,147,64,.15);border:1px solid var(--gold);border-radius:8px 8px 0 8px;padding:8px 12px;max-width:85%"><div style="font-size:12px;color:var(--txt);line-height:1.5">${esc(msg.text).replace(/\n/g,'<br>')}</div></div><div style="font-size:9px;color:var(--txt3);margin-top:2px">${appMode==='mj'?'MJ':state.chars.find(c=>c.id===charId)?.name||'?'} · ${time}</div>`;
   list.appendChild(tmpDiv);
   list.scrollTop=list.scrollHeight;
   await fbSaveMessage(charId,msg);
@@ -213,7 +215,7 @@ export function renderLog(){
   if(!f.length){document.getElementById('log-tbl').innerHTML='<div class="empty-log">Aucune entrée.</div>';return;}
   const evClass=ev=>ev==='Dégâts'?'td-d':ev==='Soin'?'td-h':ev.includes('PM')?'td-pm':'td-pc';
   const evSign=ev=>ev==='Dégâts'?'-':ev==='Soin'?'+':ev.includes('dépensé')?'-':'+';
-  const rows=[...f].reverse().map(l=>`<tr><td class="td-dim">${l.charName}</td><td class="${evClass(l.ev)}">${l.ev}</td><td class="${evClass(l.ev)}">${evSign(l.ev)}${l.val}</td><td class="td-dim">${l.source||'—'}</td><td class="td-dim">${l.type||'—'}</td><td class="td-dim">Session ${l.session}</td><td class="td-dim">Combat ${l.cbt}</td><td class="td-dim">Round ${l.rnd}</td><td class="td-pv">${l.pv}</td><td><button class="btn-del-row" onclick="deleteLogEntry(${l.logId||l.ts})">✕</button></td></tr>`).join('');
+  const rows=[...f].reverse().map(l=>`<tr><td class="td-dim">${esc(l.charName)}</td><td class="${evClass(l.ev)}">${l.ev}</td><td class="${evClass(l.ev)}">${evSign(l.ev)}${l.val}</td><td class="td-dim">${esc(l.source||'—')}</td><td class="td-dim">${esc(l.type||'—')}</td><td class="td-dim">Session ${l.session}</td><td class="td-dim">Combat ${l.cbt}</td><td class="td-dim">Round ${l.rnd}</td><td class="td-pv">${l.pv}</td><td><button class="btn-del-row" onclick="deleteLogEntry(${l.logId||l.ts})">✕</button></td></tr>`).join('');
   document.getElementById('log-tbl').innerHTML=`<div style="margin-bottom:9px"><button class="btn-clear-log" onclick="clearLog()">✕ Vider${activeLogChar===0?'':" le journal de "+who}</button></div><table><thead><tr><th>PJ</th><th>Événement</th><th>Valeur</th><th>Source</th><th>Type</th><th>Session</th><th>Combat</th><th>Round</th><th>PV rest.</th><th></th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 export function switchLog(id){setActiveLogChar(id);renderLog();}

@@ -1,4 +1,5 @@
 ﻿import { state } from './state.js';
+import { esc } from './messages.js';
 
 // ═══════════════════════════════════════════════════════════════
 //  RÉCAP
@@ -84,7 +85,7 @@ export function renderRecapTable(){
   else if(recFilter==='Soin')filtered=state.log.filter(l=>l.ev==='Soin');
   else if(recFilter==='PM')filtered=state.log.filter(l=>l.ev.includes('PM'));
   else if(recFilter==='PC')filtered=state.log.filter(l=>l.ev.includes('PC'));
-  document.getElementById('rec-body').innerHTML=filtered.length?[...filtered].reverse().map(l=>`<tr><td>${l.charName}</td><td class="${evClass(l.ev)}">${l.ev}</td><td class="${evClass(l.ev)}">${l.val}</td><td class="td-dim">${l.source}</td><td class="td-dim">${l.type}</td><td class="td-dim">Session ${l.session}</td><td class="td-dim">Combat ${l.cbt}</td><td class="td-dim">Round ${l.rnd}</td><td class="td-pv">${l.pv}</td></tr>`).join(''):'<tr><td colspan="9" class="empty-log">Aucune entrée.</td></tr>';
+  document.getElementById('rec-body').innerHTML=filtered.length?[...filtered].reverse().map(l=>`<tr><td>${esc(l.charName)}</td><td class="${evClass(l.ev)}">${l.ev}</td><td class="${evClass(l.ev)}">${l.val}</td><td class="td-dim">${esc(l.source)}</td><td class="td-dim">${esc(l.type)}</td><td class="td-dim">Session ${l.session}</td><td class="td-dim">Combat ${l.cbt}</td><td class="td-dim">Round ${l.rnd}</td><td class="td-pv">${l.pv}</td></tr>`).join(''):'<tr><td colspan="9" class="empty-log">Aucune entrée.</td></tr>';
 }
 
 // ═══════════════════════════════════════════════════════════════

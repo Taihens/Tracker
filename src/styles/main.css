@@ -607,3 +607,9 @@ tr:hover td{background:rgba(200,147,64,.03)}
 .lu-confirm-title{font-family:'Cinzel',serif;font-size:9px;letter-spacing:.12em;color:var(--gold);text-transform:uppercase;margin-bottom:8px}
 .lu-confirm-row{font-size:12px;color:var(--txt);padding:3px 0;display:flex;gap:8px;align-items:baseline}
 .lu-confirm-row .arrow{color:var(--grn3);font-family:'Cinzel',serif}
+.btn-sort-init{background:rgba(64,147,200,.12);color:var(--blu3);border-color:rgba(64,147,200,.3)}
+.btn-sort-init:hover{background:rgba(64,147,200,.25);color:#fff}
+.etat-badge{font-family:'Cinzel',serif;font-size:9px;letter-spacing:.05em;background:rgba(200,147,64,.15);color:var(--gold2);border:1px solid rgba(200,147,64,.35);border-radius:2px;padding:1px 5px;margin-left:5px;cursor:help;vertical-align:middle}
+.etat-badge.sev{background:rgba(139,26,26,.2);color:var(--red3);border-color:rgba(139,26,26,.5)}
+.card-quick-notes{width:100%;box-sizing:border-box;background:var(--bg3);border:1px solid var(--bdr);color:var(--txt);font-family:inherit;font-size:11px;padding:4px 7px;border-radius:2px;resize:none;overflow:hidden;min-height:22px;field-sizing:content;margin-top:5px;line-height:1.4}
+.card-quick-notes:focus{outline:none;border-color:var(--bdr2);background:var(--bg4, var(--bg3))}

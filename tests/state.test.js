@@ -83,6 +83,20 @@ describe('setState — state.js:30-37', () => {
     expect(Array.isArray(state.log)).toBe(true);
     expect(state.log).toHaveLength(0);
   });
+
+  it('auto-migration UUID : assigne logId aux entrées sans logId', () => {
+    const entry = { charId: 1, ev: 'Dégâts', val: 5 }; // pas de logId
+    setState({ chars: [], log: [entry] });
+    expect(state.log[0].logId).toBeDefined();
+    expect(typeof state.log[0].logId).toBe('string');
+    expect(state.log[0].logId.length).toBeGreaterThan(0);
+  });
+
+  it('auto-migration UUID : préserve un logId existant', () => {
+    const entry = { logId: 'uuid-fixe', charId: 1, ev: 'Soin', val: 3 };
+    setState({ chars: [], log: [entry] });
+    expect(state.log[0].logId).toBe('uuid-fixe');
+  });
 });
 
 // ════════════════════════════════════════════════════════════════

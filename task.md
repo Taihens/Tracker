@@ -110,3 +110,38 @@
 - [x] Créer `tests/dice.test.js` — 22 tests : `dieSVG` (d4/d6/d20/d100), `initDiceSVG` (idempotent), `selectDie` (active-die exclusif), `rollDice` (nominal/crit/fumble/mod/diceHistory/plafond 100), `updateDiceStats` (vide/moyenne-meilleur-pire/distribution d20), keydown Enter
 - [x] Validation : **135/135** tests verts (74 existants + 61 nouveaux) · lint 0 err · build OK
 - [x] Handoff `handoff05_lot02d.zip`
+
+---
+
+## Lot en cours : Lot 05 — Qualité de vie, Offline & Sécurité [CLOTURÉ]
+> Fix DV Chevalier, protections XSS, PIN PBKDF2, clé Gemini sessionStorage, tri initiative, badges d'états, notes rapides adaptatives.
+
+### Tâches
+- [x] Fix DV Chevalier : D8 → D10 dans `src/modules/cof-classes.js`
+- [x] `esc(s)` exportée dans `messages.js` — protection XSS sur logs (renderLog), messages (renderMessages, sendMessage optimiste) et récap (recap.js)
+- [x] Auto-migration UUID logs dans `setState` — garantit `logId` sur toutes les entrées héritées
+- [x] PIN PBKDF2 dans `mode.js` — `hashPin()` async, `enterMJ` / `enterMJwithPin` / `savePin` async, rétrocompat PIN clair
+- [x] Clé API Gemini déplacée de `localStorage` → `sessionStorage` dans `gemini.js`
+- [x] `sortCharsByInitiative()` + `updateCharNotes()` exportées dans `combat.js`
+- [x] Bouton `⇅ Tri Initiative` dans `#mj-act-row` (index.html)
+- [x] Badge d'état dans `cardHTML` et `updateCardDOM` (`render.js`) — tooltip + classe `.sev`
+- [x] Textarea adaptatif `card-quick-notes` dans `cardHTML` — `field-sizing:content` + fallback JS `scrollHeight`
+- [x] Styles CSS : `.btn-sort-init`, `.etat-badge`, `.etat-badge.sev`, `.card-quick-notes`
+- [x] R1 : CACHE `sw.js` v9 → v10
+- [x] Tests : +14 tests (7 combat, 2 state) → **149/149 verts** · lint 0 erreur · build OK
+- [x] Validation navigateur Taihens : DV D10 ✅ · badges état ✅ · notes ✅ · tri initiative ✅ · PIN PBKDF2 ✅
+- [x] Handoff `handoff07_lot05.zip`
+
+---
+
+## Lot précédent : Lot 04 — Améliorations UX Combat (Undo & Récupération) [CLOTURÉ]
+> Implémentation du bouton physique d'annulation globale permanent (MJ et Joueur) et d'un bouton de Point de Récupération individuel par carte.
+
+### Tâches
+- [x] HTML & CSS : Bouton `#btn-undo-last` dans `#mj-act-row`, suppression de `#undo-bar` obsolète, styles `.btn-undo-last`
+- [x] Logique d'Annulation (Undo) dans `src/modules/ui/modals.js` : Snapshot complet de l'état (chars, log, etats, lvlUpHistory, charHistory), masquage/affichage conditionnel du bouton d'annulation
+- [x] Visibilité du Bouton dans `src/modules/ui/mode.js` : Mise à jour de l'affichage du bouton d'annulation lors des changements de mode
+- [x] Point de Récupération Individuel : Helper privé `performPointRecup(c)` et exportation de `pointRecupChar(id)` dans `src/modules/combat.js`, bouton `✦ Récup.` par carte dans `render.js` (désactivé si KO ou PV max)
+- [x] Intégration Combat : Nettoyage des anciens appels `window.showUndoBar(...)`, appel de `window.saveSnapshot()` au début de `resetAll()`
+- [x] Tests Unitaires & Linting : Nettoyage des assertions legacy, ajout de tests unitaires pour `pointRecupChar(id)` et `saveSnapshot` dans `tests/combat.test.js`, validation de tous les tests unitaires (142/142 tests verts), lint 0 erreur
+- [x] Handoff `handoff06_lot04.zip`

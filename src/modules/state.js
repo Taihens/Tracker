@@ -33,6 +33,12 @@ export function setState(v){
   // synchronisé peut revenir sans la clé `log`. On garantit toujours un tableau
   // (sinon state.log.push/filter crashe — cf. combat.js, messages.js, roster.js).
   if(state && !Array.isArray(state.log)) state.log = [];
+  // Auto-migration : garantit un logId UUID sur chaque entrée de log
+  if(state && Array.isArray(state.log)){
+    state.log.forEach(l => {
+      if(!l.logId) l.logId = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : Date.now().toString() + Math.random().toString(36).substr(2,9);
+    });
+  }
   rebuildCharsMap();
 }
 export function setEditCharId(v){ editCharId = v; }
