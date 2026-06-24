@@ -1,5 +1,5 @@
 // ── FICHES : render + monnaie/photo/cap helpers + firebase photo sync ──
-import { firebaseDB, firebaseApp, _fbConnected, save } from '../firebase.js';
+import { firebaseDB, _fbConnected, save, ref, set, onValue } from '../firebase.js';
 import { state, appMode, selectedPlayerChar } from '../state.js';
 import { openEdit } from './edit.js';
 
@@ -7,15 +7,13 @@ import { openEdit } from './edit.js';
 export async function fbSavePhoto(charId, photoData){
   if(!firebaseDB||!_fbConnected)return;
   try{
-    const {getDatabase,ref,set}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
-    await set(ref(getDatabase(firebaseApp),`photos/${charId}`),photoData||null);
+    await set(ref(firebaseDB,`photos/${charId}`),photoData||null);
   }catch(e){console.warn('FB photo sync:',e.message);}
 }
 export async function fbListenPhotos(){
   if(!firebaseDB||!_fbConnected)return;
   try{
-    const {getDatabase,ref,onValue}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
-    onValue(ref(getDatabase(firebaseApp),'photos'),(snap)=>{
+    onValue(ref(firebaseDB,'photos'),(snap)=>{
       if(!snap.exists())return;
       const photos=snap.val();
       let changed=false;

@@ -3,8 +3,7 @@
 //  Helpers fb* messagerie co-localisés ici (lecture firebaseDB/_fbConnected)
 // ═══════════════════════════════════════════════════════════════
 import { state, appMode, selectedPlayerChar, activeLogChar, setActiveLogChar } from './state.js';
-import { firebaseDB, firebaseApp, _fbConnected } from './firebase.js';
-import { save } from './firebase.js';
+import { firebaseDB, _fbConnected, save, ref, push, update, onValue, get, set, remove } from './firebase.js';
 import { hpColor } from './combat.js';
 
 let msgUnread=0;
@@ -17,16 +16,14 @@ export function getMsgKey(charId){
 export async function fbSaveMessage(charId, msgObj){
   if(!firebaseDB||!_fbConnected)return;
   try{
-    const {getDatabase,ref,push}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
-    await push(ref(getDatabase(firebaseApp),`messages/${charId}`),msgObj);
+    await push(ref(firebaseDB,`messages/${charId}`),msgObj);
   }catch(e){console.warn('FB msg save:',e.message);}
 }
 
 export async function fbMarkRead(charId, msgKey){
   if(!firebaseDB||!_fbConnected)return;
   try{
-    const {getDatabase,ref,update}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
-    await update(ref(getDatabase(firebaseApp),`messages/${charId}/${msgKey}`),{readAt:Date.now()});
+    await update(ref(firebaseDB,`messages/${charId}/${msgKey}`),{readAt:Date.now()});
   }catch(e){console.warn('FB mark read:',e.message);}
 }
 
@@ -40,10 +37,9 @@ export async function fbListenMessages(){
     ?state.chars.map(c=>c.id)
     :[selectedPlayerChar].filter(Boolean);
   try{
-    const {getDatabase,ref,onValue}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
     charIds.forEach(charId=>{
       if(_msgListeners[charId])return; // already listening
-      _msgListeners[charId]=onValue(ref(getDatabase(firebaseApp),`messages/${charId}`),(snap)=>{
+      _msgListeners[charId]=onValue(ref(firebaseDB,`messages/${charId}`),(snap)=>{
         if(!snap.exists())return;
         const msgs=snap.val();
         // Count unread messages sent TO current user
@@ -99,9 +95,7 @@ export async function renderMessages(){
     return;
   }
   try{
-    const {getDatabase,ref,get,set}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
-    const db=getDatabase(firebaseApp);
-    const snap=await get(ref(db,`messages/${charId}`));
+    const snap=await get(ref(firebaseDB,`messages/${charId}`));
     const list=document.getElementById('msg-list');
     if(!snap.exists()){
       list.innerHTML='<div style="color:var(--txt3);font-style:italic;font-size:12px;text-align:center;padding:20px">Aucun message</div>';
@@ -128,7 +122,7 @@ export async function renderMessages(){
       const isForMe=appMode==='mj'?m.from!=='mj':m.from==='mj';
       if(isForMe&&!m.readAt){
         try{
-          await set(ref(db,`messages/${charId}/${key}/readAt`),now);
+          await set(ref(firebaseDB,`messages/${charId}/${key}/readAt`),now);
         }catch(e2){console.warn('mark read:',e2.message);}
       }
     }
@@ -169,8 +163,7 @@ export async function deleteConversation(){
   const charName=state.chars.find(c=>c.id===charId)?.name||'?';
   if(!confirm(`Supprimer toute la conversation avec ${charName} ? Cette action est irréversible.`))return;
   try{
-    const {getDatabase,ref,remove}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
-    await remove(ref(getDatabase(firebaseApp),`messages/${charId}`));
+    await remove(ref(firebaseDB,`messages/${charId}`));
     msgUnread=0;updateMsgBadge();
     await renderMessages();
     window.toast(`Conversation avec ${charName} supprimée`,'t-i');

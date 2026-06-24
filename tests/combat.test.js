@@ -7,17 +7,26 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // ── Mocks des dépendances ES statiques de combat.js (chemins relatifs à CE fichier) ──
-vi.mock('../src/modules/firebase.js', () => ({ save: vi.fn() }));
+// Lot 02c : firebase.js exporte désormais des helpers statiques (ré-exports du SDK).
+vi.mock('../src/modules/firebase.js', () => ({
+  save: vi.fn(), firebaseDB: null,
+  set: vi.fn(), get: vi.fn(), remove: vi.fn(), ref: vi.fn(),
+}));
 
-vi.mock('../src/modules/state.js', () => ({
+vi.mock('../src/modules/state.js', () => {
   // Objet mutable réinitialisé PAR MUTATION dans beforeEach (jamais réassigné :
   // combat.js conserve la référence importée).
-  state: { chars: [], log: [], session: 1, combat: 1, round: 1, activeTurn: null },
-  cardTypes: {},
-  setState: vi.fn(),
-  setCharHistory: vi.fn(),
-  pushHistory: vi.fn(),
-}));
+  const state = { chars: [], log: [], session: 1, combat: 1, round: 1, activeTurn: null };
+  return {
+    state,
+    cardTypes: {},
+    setState: vi.fn(),
+    setCharHistory: vi.fn(),
+    pushHistory: vi.fn(),
+    // Lot 02c : indexation O(1). Le mock relit le tableau mutable courant.
+    getChar: vi.fn((id) => state.chars.find((x) => x.id === id)),
+  };
+});
 
 vi.mock('../src/modules/cof-classes.js', () => ({
   // Impls réelles (pures) — déterminisme assuré via le stub Math.random.
@@ -81,8 +90,8 @@ beforeEach(() => {
   vi.spyOn(Date, 'now').mockReturnValue(1000);
   vi.spyOn(Math, 'random').mockReturnValue(0.5);
   WINDOW_STUBS.forEach((g) => vi.stubGlobal(g, vi.fn()));
-  // showActionConfirm : par défaut on INVOQUE le callback (toute la logique y est).
-  vi.stubGlobal('showActionConfirm', vi.fn((i, t, m, cb) => cb && cb()));
+  // Lot 02c : showActionConfirm renvoie une Promise<boolean>. Par défaut → confirmé.
+  vi.stubGlobal('showActionConfirm', vi.fn(() => Promise.resolve(true)));
 });
 
 afterEach(() => {
@@ -265,20 +274,22 @@ describe('applyDmg', () => {
     expect(window.renderLog).toHaveBeenCalled();
     expect(window.renderRecap).toHaveBeenCalled();
   });
-  it('// TODO: bug historique — crash si fixture DOM #dmg absente (combat.js:44 non gardé)', () => {
-    state.chars = [makeChar()];
-    // pas de mountDmgInputs → getElementById('dmg-1') === null → null.value
-    expect(() => applyDmg(1)).toThrow(TypeError);
+  it('Lot 02c — bug 1 corrigé : garde DOM si #dmg absent (early return, pas de crash)', () => {
+    const c = makeChar(); state.chars = [c];
+    // pas de mountDmgInputs → #dmg-1 absent → garde combat.js → early return propre
+    expect(() => applyDmg(1)).not.toThrow();
+    expect(c.pvActuel).toBe(100);
+    expect(state.log).toHaveLength(0);
+    expect(save).not.toHaveBeenCalled();
   });
-  it('// TODO: bug historique — logId collisionnables : Date.now()+Math.random() (combat.js:52)', () => {
-    // Deux dégâts dans la même ms avec le même tirage → logId identiques.
+  it('Lot 02c — bug 2 corrigé : logId uniques (crypto.randomUUID)', () => {
     const c = makeChar({ pvActuel: 100 }); state.chars = [c];
     mountCard(1); mountDmgInputs(1, { dmg: '5' });
     applyDmg(1);
     document.getElementById('dmg-1').value = '5'; // applyDmg a vidé l'input
     applyDmg(1);
     expect(state.log).toHaveLength(2);
-    expect(state.log[0].logId).toBe(state.log[1].logId); // collision (bug historique)
+    expect(state.log[0].logId).not.toBe(state.log[1].logId); // unicité garantie
   });
 });
 
@@ -438,10 +449,13 @@ describe('pointRecup', () => {
     pointRecup();
     expect(c.pvActuel).toBe(100);
   });
-  it('// TODO: bug historique — gain NaN si c.niveau absent (combat.js:117 non gardé)', () => {
+  it('Lot 02c — bug 3 corrigé : niveau absent → défaut 1, pas de NaN', () => {
+    // Math.random=0.5, dv D8 → roll 5 ; gain = max(1, 5 + CON(3) + niv(1)) = 9 → 50+9 = 59
     const c = makeChar({ pvActuel: 50, niveau: undefined }); state.chars = [c];
+    mountCard(1);
     pointRecup();
-    expect(Number.isNaN(c.pvActuel)).toBe(true);
+    expect(Number.isNaN(c.pvActuel)).toBe(false);
+    expect(c.pvActuel).toBe(59);
   });
   it('animation healing ajoutée puis retirée après 900ms', () => {
     vi.useFakeTimers();
@@ -455,23 +469,23 @@ describe('pointRecup', () => {
 });
 
 describe('endRound', () => {
-  it('demande confirmation (showActionConfirm appelé)', () => {
-    endRound();
+  it('demande confirmation (showActionConfirm appelé)', async () => {
+    await endRound();
     expect(window.showActionConfirm).toHaveBeenCalled();
   });
-  it('callback non invoqué (annulation) → state inchangé', () => {
-    vi.stubGlobal('showActionConfirm', vi.fn()); // n'invoque pas le cb
+  it('annulation (Promise→false) → state inchangé', async () => {
+    vi.stubGlobal('showActionConfirm', vi.fn(() => Promise.resolve(false)));
     state.round = 3;
-    endRound();
+    await endRound();
     expect(state.round).toBe(3);
     expect(window.saveSnapshot).not.toHaveBeenCalled();
   });
-  it("callback : round++, 'Surpris'→'Normal', saveSnapshot + showUndoBar", () => {
+  it("confirmé : round++, 'Surpris'→'Normal', saveSnapshot + showUndoBar", async () => {
     const surpris = makeChar({ id: 1, etat: 'Surpris' });
     const etourdi = makeChar({ id: 2, etat: 'Étourdi' });
     state.chars = [surpris, etourdi];
     state.round = 3;
-    endRound();
+    await endRound();
     expect(state.round).toBe(4);
     expect(surpris.etat).toBe('Normal');
     expect(etourdi.etat).toBe('Étourdi'); // endRound n'efface QUE Surpris (asymétrie vs endCombat)
@@ -481,13 +495,13 @@ describe('endRound', () => {
 });
 
 describe('endCombat', () => {
-  it("callback : combat++, round=1, activeTurn=null, 'Étourdi'+'Surpris'→'Normal'", () => {
+  it("confirmé : combat++, round=1, activeTurn=null, 'Étourdi'+'Surpris'→'Normal'", async () => {
     const surpris = makeChar({ id: 1, etat: 'Surpris' });
     const etourdi = makeChar({ id: 2, etat: 'Étourdi' });
     const empoisonne = makeChar({ id: 3, etat: 'Empoisonné' });
     state.chars = [surpris, etourdi, empoisonne];
     state.combat = 2; state.round = 5; state.activeTurn = 1;
-    endCombat();
+    await endCombat();
     expect(state.combat).toBe(3);
     expect(state.round).toBe(1);
     expect(state.activeTurn).toBeNull();
@@ -498,26 +512,26 @@ describe('endCombat', () => {
 });
 
 describe('endSession', () => {
-  it('callback : session++, combat=1, round=1, activeTurn=null', () => {
+  it('confirmé : session++, combat=1, round=1, activeTurn=null', async () => {
     state.session = 2; state.combat = 3; state.round = 5; state.activeTurn = 1;
-    endSession();
+    await endSession();
     expect(state.session).toBe(3);
     expect(state.combat).toBe(1);
     expect(state.round).toBe(1);
     expect(state.activeTurn).toBeNull();
     expect(window.saveSnapshot).toHaveBeenCalled();
   });
-  it('ne touche PAS aux états des personnages (asymétrie vs endRound/endCombat)', () => {
+  it('ne touche PAS aux états des personnages (asymétrie vs endRound/endCombat)', async () => {
     const c = makeChar({ etat: 'Surpris' }); state.chars = [c];
-    endSession();
+    await endSession();
     expect(c.etat).toBe('Surpris'); // endSession ne nettoie aucun état
   });
 });
 
 describe('resetAll', () => {
-  it('callback : setState(défauts) + setCharHistory({}), sans muter state directement', () => {
+  it('confirmé : setState(défauts) + setCharHistory({}), sans muter state directement', async () => {
     const original = state.chars;
-    resetAll();
+    await resetAll();
     expect(setState).toHaveBeenCalledTimes(1);
     const arg = setState.mock.calls[0][0];
     expect(arg.chars).toEqual(DEFAULT_CHARS);
@@ -530,10 +544,10 @@ describe('resetAll', () => {
 });
 
 describe('reposComplet', () => {
-  it('callback : saveSnapshot + confirmReposComplet (chars maxés) + showUndoBar', () => {
+  it('confirmé : saveSnapshot + confirmReposComplet (chars maxés) + showUndoBar', async () => {
     const c = makeChar({ pvActuel: 10, pmActuel: 0, pcActuel: 0, etat: 'Inconscient' });
     state.chars = [c];
-    reposComplet();
+    await reposComplet();
     expect(window.saveSnapshot).toHaveBeenCalled();
     expect(c.pvActuel).toBe(c.pvMax);
     expect(c.pmActuel).toBe(c.pmMax);

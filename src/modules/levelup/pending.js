@@ -3,7 +3,7 @@
 // ═══════════════════════════════════════════════════════════════
 import { parseMod, dvMax, parseAtt, fmtAtt } from '../cof-classes.js';
 import { state, appMode } from '../state.js';
-import { firebaseDB, firebaseApp, _fbConnected, save } from '../firebase.js';
+import { firebaseDB, _fbConnected, save, ref, set, onValue } from '../firebase.js';
 import { DEFAULT_CHARS } from '../constants.js';
 
 export let pendingLvlUps={};
@@ -14,15 +14,13 @@ export async function fbSavePendingLvlUp(){
   localStorage.setItem('anathazer_pending_lvlup',JSON.stringify(pendingLvlUps));
   if(!firebaseDB||!_fbConnected)return;
   try{
-    const {getDatabase,ref,set}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
-    await set(ref(getDatabase(firebaseApp),'pendingLvlUp'),pendingLvlUps);
+    await set(ref(firebaseDB,'pendingLvlUp'),pendingLvlUps);
   }catch(e){console.warn('FB lvlup sync:',e.message);}
 }
 export async function fbListenPendingLvlUp(){
   if(!firebaseDB||!_fbConnected)return;
   try{
-    const {getDatabase,ref,onValue}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
-    onValue(ref(getDatabase(firebaseApp),'pendingLvlUp'),(snap)=>{
+    onValue(ref(firebaseDB,'pendingLvlUp'),(snap)=>{
       const data=snap.exists()?snap.val():{};
       const prev=JSON.stringify(pendingLvlUps);
       pendingLvlUps=data;

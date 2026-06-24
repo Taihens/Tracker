@@ -12,8 +12,29 @@ export let cardTypes = {}, charHistory = {};
 export let appMode = 'mj'; // 'mj' | 'joueur'
 export let modeExplicitlySet = false;
 
+// ── Indexation O(1) des persos par id (Lot 02c) ──
+// charsMap reste synchro via rebuildCharsMap() : appelé par setState et par les
+// sites mutant la composition de state.chars (ajout/suppression de perso).
+let charsMap = new Map();
+export function rebuildCharsMap(){
+  charsMap.clear();
+  (state?.chars || []).forEach(c => charsMap.set(c.id, c));
+}
+// Recherche O(1) ; fallback linéaire défensif si la Map est périmée (un site
+// aurait muté state.chars sans rebuild) → garantit la correction.
+export function getChar(id){
+  return charsMap.get(id) || (state?.chars || []).find(c => c.id === id);
+}
+
 // ── Setters (réassignation hors module impossible sur un import → passer par ici) ──
-export function setState(v){ state = v; }
+export function setState(v){
+  state = v;
+  // Garde invariant : Firebase RTDB n'écrit pas les tableaux vides → un état
+  // synchronisé peut revenir sans la clé `log`. On garantit toujours un tableau
+  // (sinon state.log.push/filter crashe — cf. combat.js, messages.js, roster.js).
+  if(state && !Array.isArray(state.log)) state.log = [];
+  rebuildCharsMap();
+}
 export function setEditCharId(v){ editCharId = v; }
 export function setEditData(v){ editData = v; }
 export function setActiveLogChar(v){ activeLogChar = v; }
@@ -41,7 +62,7 @@ export function pushHistory(charId,pvActuel,etat,logEntry){
 }
 export function undoChar(id){
   const h=charHistory[id]; if(!h||h.pos<=0)return;
-  const c=state.chars.find(x=>x.id===id); if(!c)return;
+  const c=getChar(id); if(!c)return;
   const cur=h.snapshots[h.pos];
   if(cur.logId) state.log=state.log.filter(l=>l.logId!==cur.logId);
   h.pos--;
@@ -54,7 +75,7 @@ export function undoChar(id){
 }
 export function redoChar(id){
   const h=charHistory[id]; if(!h||h.pos>=h.snapshots.length-1)return;
-  const c=state.chars.find(x=>x.id===id); if(!c)return;
+  const c=getChar(id); if(!c)return;
   h.pos++;
   const next=h.snapshots[h.pos];
   c.pvActuel=next.pvActuel; c.etat=next.etat;

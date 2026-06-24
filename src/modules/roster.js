@@ -3,8 +3,8 @@
 //  validation des persos en attente (pending), mots de passe perso.
 //  Appels de rendu/UI via window.* (pas d'import de ui.js — R architecte)
 // ═══════════════════════════════════════════════════════════════
-import { state, appMode, selectedPlayerChar, cardTypes, charHistory } from './state.js';
-import { save, firebaseDB, firebaseApp, _fbConnected } from './firebase.js';
+import { state, appMode, selectedPlayerChar, cardTypes, charHistory, getChar, rebuildCharsMap } from './state.js';
+import { save, firebaseDB, _fbConnected, ref, set, onValue } from './firebase.js';
 import { getCharPwds, setCharPwds } from './storage.js';
 import { DEFAULT_CHARS } from './constants.js';
 import { pendingLvlUps, fbSavePendingLvlUp } from './levelup.js';
@@ -16,14 +16,12 @@ try{const p=JSON.parse(localStorage.getItem('anathazer_pending_chars'));if(p)pen
 export async function fbSavePendingChars(){
   localStorage.setItem('anathazer_pending_chars',JSON.stringify(pendingChars));
   if(!firebaseDB||!_fbConnected)return;
-  try{const {getDatabase,ref,set}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
-  await set(ref(getDatabase(firebaseApp),'pendingChars'),pendingChars);}catch(e){ console.warn('Firebase set pendingChars:',e.message); }
+  try{await set(ref(firebaseDB,'pendingChars'),pendingChars);}catch(e){ console.warn('Firebase set pendingChars:',e.message); }
 }
 export async function fbListenPendingChars(){
   if(!firebaseDB||!_fbConnected)return;
   try{
-    const {getDatabase,ref,onValue}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
-    onValue(ref(getDatabase(firebaseApp),'pendingChars'),(snap)=>{
+    onValue(ref(firebaseDB,'pendingChars'),(snap)=>{
       pendingChars=snap.exists()?snap.val():{};
       localStorage.setItem('anathazer_pending_chars',JSON.stringify(pendingChars));
       checkPendingChars();
@@ -69,17 +67,18 @@ export function mjValidateChar(charId){
   if(remaining.length>0) renderPendingChars(); else closePendingChars();
   window.toast(`${c.name} validé ✓`,'t-i');
 }
-export function mjRefuseChar(charId){
-  const c=state.chars.find(x=>x.id===charId);if(!c)return;
-  window.showActionConfirm('✕','Refuser '+c.name,'Le personnage sera supprimé définitivement.',()=>{
+export async function mjRefuseChar(charId){
+  const c=getChar(charId);if(!c)return;
+  if(await window.showActionConfirm('✕','Refuser '+c.name,'Le personnage sera supprimé définitivement.')){
     delete pendingChars[charId];
     fbSavePendingChars();
     state.chars=state.chars.filter(x=>x.id!==charId);
+    rebuildCharsMap();
     save();window.render();renderRoster();checkPendingChars();
     const pending=Object.values(pendingChars);
     if(pending.length>0) renderPendingChars(); else closePendingChars();
     window.toast(`${c.name} refusé`,'t-w');
-  });
+  }
 }
 export function submitCharForValidation(charId){
   const c=state.chars.find(x=>x.id===charId);if(!c)return;
@@ -88,14 +87,14 @@ export function submitCharForValidation(charId){
   fbSavePendingChars();save();renderRoster();
   window.toast(`${c.name} — demande envoyée au MJ`,'t-i');
 }
-export function cancelCharSubmission(charId){
-  const c=state.chars.find(x=>x.id===charId);if(!c)return;
-  window.showActionConfirm('✕','Annuler la demande','Votre personnage restera non validé.',()=>{
+export async function cancelCharSubmission(charId){
+  const c=getChar(charId);if(!c)return;
+  if(await window.showActionConfirm('✕','Annuler la demande','Votre personnage restera non validé.')){
     c.pending=false;
     delete pendingChars[charId];
     fbSavePendingChars();save();renderRoster();
     window.toast('Demande annulée','t-i');
-  });
+  }
 }
 
 // ── HIDDEN CHARS ──
@@ -179,21 +178,22 @@ export function togglePresent(id){
   window.toast(`${c.name} — ${c.present?'Présent':'Absent'}`,'t-i');
   window.refreshActiveTab();
 }
-export function deleteChar(id){
-  const c=state.chars.find(x=>x.id===id);if(!c)return;
+export async function deleteChar(id){
+  const c=getChar(id);if(!c)return;
   if(appMode==='joueur'){
     if(c.createdBy!==selectedPlayerChar){window.toast('Tu ne peux supprimer que les personnages que tu as créés','t-w');return;}
   }
-  window.showActionConfirm('🗑','Supprimer '+c.name,'Cette action est irréversible.',()=>{
+  if(await window.showActionConfirm('🗑','Supprimer '+c.name,'Cette action est irréversible.')){
     if(pendingLvlUps[id]){delete pendingLvlUps[id];fbSavePendingLvlUp();}
     if(pendingChars[id]){delete pendingChars[id];fbSavePendingChars();}
     state.chars=state.chars.filter(x=>x.id!==id);
+    rebuildCharsMap();
     state.log=state.log.filter(l=>l.charId!==id);
     delete cardTypes[id];delete charHistory[id];
     save();window.render();renderRoster();
     window.checkPendingLvlUps();checkPendingChars();
     window.toast(`${c.name} supprimé`,'t-w');
-  });
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════

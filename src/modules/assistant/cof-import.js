@@ -1,6 +1,6 @@
 // ── COF RULES IMPORT ──
 import { COF_PAGES, COF_RACES_INDEX } from '../constants.js';
-import { firebaseDB, firebaseApp, _fbConnected } from '../firebase.js';
+import { firebaseDB, _fbConnected, set, get, remove, ref } from '../firebase.js';
 
 export let _cofImportStopped=false;
 
@@ -121,8 +121,7 @@ export async function importCOFRules(){
       window._cofRulesText=partial;
       if(firebaseDB&&_fbConnected){
         try{
-          const {getDatabase,ref,set}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
-          await set(ref(getDatabase(firebaseApp),'cof_rules'),{text:partial,imported:Date.now(),pages:results.length,failed:failed.length});
+          await set(ref(firebaseDB,'cof_rules'),{text:partial,imported:Date.now(),pages:results.length,failed:failed.length});
         }catch(e){ console.warn('Firebase set cof_rules (partiel):',e.message); }
       }
     }
@@ -232,8 +231,7 @@ export async function retryCOFPages(){
   window._cofRulesText=fullText;
   if(firebaseDB&&_fbConnected){
     try{
-      const {getDatabase,ref,set}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
-      await set(ref(getDatabase(firebaseApp),'cof_rules'),{text:fullText,imported:Date.now(),pages:(existing.match(/===/g)||[]).length/2+newResults.length});
+      await set(ref(firebaseDB,'cof_rules'),{text:fullText,imported:Date.now(),pages:(existing.match(/===/g)||[]).length/2+newResults.length});
     }catch(e){ console.warn('Firebase set cof_rules:',e.message); }
   }
   if(status) status.textContent=`✅ ${newResults.length} pages récupérées en plus — ${Math.round(fullText.length/1024)}ko total`;
@@ -245,8 +243,7 @@ export async function clearCOFRules(){
   window._cofRulesText=null;
   localStorage.removeItem('anathazer_cof_rules');
   if(firebaseDB&&_fbConnected){
-    try{const {getDatabase,ref,remove}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
-    await remove(ref(getDatabase(firebaseApp),'cof_rules'));}catch(e){ console.warn('Firebase remove cof_rules:',e.message); }
+    try{await remove(ref(firebaseDB,'cof_rules'));}catch(e){ console.warn('Firebase remove cof_rules:',e.message); }
   }
   const s=document.getElementById('cof-rules-status');
   if(s) s.textContent='Aucune règle importée.';
@@ -257,8 +254,7 @@ export async function loadCOFRulesStatus(){
   const s=document.getElementById('cof-rules-status');if(!s)return;
   if(firebaseDB&&_fbConnected){
     try{
-      const {getDatabase,ref,get}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
-      const snap=await get(ref(getDatabase(firebaseApp),'cof_rules'));
+      const snap=await get(ref(firebaseDB,'cof_rules'));
       if(snap.exists()){
         const d=snap.val();
         window._cofRulesText=d.text;
@@ -276,8 +272,7 @@ export async function getCOFRulesText(){
   if(window._cofRulesText) return window._cofRulesText;
   if(firebaseDB&&_fbConnected){
     try{
-      const {getDatabase,ref,get}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
-      const snap=await get(ref(getDatabase(firebaseApp),'cof_rules'));
+      const snap=await get(ref(firebaseDB,'cof_rules'));
       if(snap.exists()){window._cofRulesText=snap.val().text;return window._cofRulesText;}
     }catch(e){ console.warn('Firebase get cof_rules:',e.message); }
   }

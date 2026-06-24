@@ -11,7 +11,7 @@ import {
   appMode, setAppMode, setModeExplicitlySet, setSelectedPlayerChar,
 } from './modules/state.js';
 import { loadState, loadSettings, settings } from './modules/storage.js';
-import { initFirebase, firebaseDB, firebaseApp, _fbConnected, save } from './modules/firebase.js';
+import { initFirebase, firebaseDB, _fbConnected, save, ref, get } from './modules/firebase.js';
 import { DEFAULT_CHARS } from './modules/constants.js';
 import { render } from './modules/ui/render.js';
 import { renderEtats } from './modules/ui/etats.js';
@@ -40,11 +40,9 @@ async function forceRefresh(){
   },8000);
   try{
     if(!firebaseDB||!_fbConnected) throw new Error('Firebase non connecté');
-    const {getDatabase,ref,get}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
-    const db=getDatabase(firebaseApp);
     const [snapState,snapLvl]=await Promise.all([
-      get(ref(db,'state')),
-      get(ref(db,'pendingLvlUp'))
+      get(ref(firebaseDB,'state')),
+      get(ref(firebaseDB,'pendingLvlUp'))
     ]);
     if(snapState.exists()){
       setState(snapState.val());

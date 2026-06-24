@@ -24,5 +24,8 @@
     "vite": "^6.0.0",
     "vite-plugin-pwa": "^0.21.0",
     "vitest": "^3.0.0"
+  },
+  "dependencies": {
+    "firebase": "^12.15.0"
   }
 }
