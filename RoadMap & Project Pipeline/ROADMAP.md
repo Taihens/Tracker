@@ -54,16 +54,19 @@ PWA TTRPG (Chroniques Oubliées Fantasy) — suivi de combat MJ/Joueurs, dés, f
 - **Validation navigateur (Taihens)** : ✅ OK, 5 volets (`docs/verif_navigateur_lot02c.md`). Handoff `handoff04_lot02c.zip`.
 - **Remontées hors scope** → Gémi : undo permanent (Lot dédié), point de récup individuel (en attente).
 
-### 📋 Lot 02d — Reste des tests unitaires [PLANIFIÉ]
-- **Tests dés** (formules de jets, historique)
-- **Tests state / storage** (sauvegarde, chargement, migrations et abstraction localStorage)
+### ✅ Lot 02d — Reste des tests unitaires [CLOTURÉ]
+- **Tests dés** : `dieSVG`, `initDiceSVG`, `selectDie`, `rollDice` (crit/fumble/mod/plafond 100), `updateDiceStats`, keydown Enter → `tests/dice.test.js` (22 tests)
+- **Tests state** : `rebuildCharsMap`, `getChar` (O(1) + fallback), `setState` (guard log), `initHistory`, `pushHistory` (troncature future), `undoChar`, `redoChar` → `tests/state.test.js` (20 tests)
+- **Tests storage** : `loadState` (7 scénarios : v4/v3/corrompu/migration att→3att/fusion voies), `loadSettings`, `saveSettings`, `applyTheme`, `getCharPwds/setCharPwds`, `getPmAttrPref/setPmAttrPref` → `tests/storage.test.js` (19 tests)
+- **Livré** : 3 nouveaux fichiers de tests · suite totale **135/135** verts · lint 0 err · build OK · R1 non applicable (tests seuls, pas de JS/CSS servi modifié).
 
-### 📋 Lot 04 — Annulation permanente des actions [PLANIFIÉ]
-**Objectif** : Remplacer la barre d'annulation temporaire de 12 secondes par un bouton d'annulation physique permanent et robuste sur le tableau de bord MJ, et supporter l'annulation complète de la réinitialisation (`resetAll`).
+### 📋 Lot 04 — Améliorations UX Combat (Undo & Récupération) [PLANIFIÉ]
+**Objectif** : Améliorer l'ergonomie et la robustesse des actions administratives majeures (Undo permanent global, support de `resetAll`) et ajouter un bouton de Point de Récupération individuel par carte.
 - **Fonctionnalités** :
-  - *Bouton physique* : Intégration d'un bouton d'annulation permanent dans la ligne d'actions MJ du Tableau de bord.
+  - *Bouton physique Undo* : Intégration d'un bouton d'annulation permanent dans la ligne d'actions MJ du Tableau de bord.
   - *Snapshot d'état complet* : Remplacement du snapshot partiel par un snapshot d'état complet de l'application (personnages, logs, historiques) pour permettre l'annulation de toutes les actions, y compris `resetAll`.
-  - *Gestion de la visibilité* : Affichage dynamique du bouton uniquement si un snapshot d'annulation est disponible localement pour le MJ.
+  - *Gestion de la visibilité Undo* : Affichage dynamique du bouton uniquement si un snapshot d'annulation est disponible localement pour le MJ.
+  - *Point de Récupération individuel* : Ajout d'un bouton de récupération par personnage à côté de "✚ Soigner", avec désactivation visuelle si le personnage est KO (PV = 0) ou à PV max. Factorisation du calcul sous-jacent.
 
 ### 📋 Lot 05 — Fonctionnalités [À DÉFINIR PAR GÉMI]
 - TBD selon besoins de la campagne

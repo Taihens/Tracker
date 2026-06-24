@@ -101,5 +101,12 @@
 
 ---
 
-## Lot suivant : Lot 02d — Reste des tests unitaires
-> Tests unitaires restants (dés, stockage et état) après finalisation des optimisations.
+## Lot précédent : Lot 02d — Reste des tests unitaires [CLOTURÉ]
+> Tests unitaires restants (dés, stockage et état) — couverture complète sans modification de production.
+
+### Tâches
+- [x] Créer `tests/state.test.js` — 20 tests : `rebuildCharsMap`, `getChar` (O(1) + fallback linéaire), `setState` (guard log Firebase), `initHistory` (idempotent), `pushHistory` (troncature future), `undoChar` (log, render, toast, renderLog conditionnel), `redoChar`
+- [x] Créer `tests/storage.test.js` — 19 tests : `loadState` (v4 nominal, migration v3, JSON corrompu, s.chars absent, fusion voies/armes, migration att→3att, etats/lvlUpHistory), `loadSettings` (defaults, fusion, corrompu), `saveSettings` (DOM checkboxes), `applyTheme` (data-theme, settings, localStorage, renderThemeGrid), `getCharPwds/setCharPwds`, `getPmAttrPref/setPmAttrPref` (isolation par perso)
+- [x] Créer `tests/dice.test.js` — 22 tests : `dieSVG` (d4/d6/d20/d100), `initDiceSVG` (idempotent), `selectDie` (active-die exclusif), `rollDice` (nominal/crit/fumble/mod/diceHistory/plafond 100), `updateDiceStats` (vide/moyenne-meilleur-pire/distribution d20), keydown Enter
+- [x] Validation : **135/135** tests verts (74 existants + 61 nouveaux) · lint 0 err · build OK
+- [x] Handoff `handoff05_lot02d.zip`
