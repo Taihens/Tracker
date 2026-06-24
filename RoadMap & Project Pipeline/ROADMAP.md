@@ -77,12 +77,9 @@ PWA TTRPG (Chroniques Oubliées Fantasy) — suivi de combat MJ/Joueurs, dés, f
 - **Ergonomie** : `sortCharsByInitiative()` + bouton `⇅ Tri Initiative` (undoable). Badges d'état inline sur les cartes (tooltip mécanique, classe `.sev` pour états critiques). Textarea notes rapides adaptatif (`field-sizing:content`) par carte, persisté sans re-render global.
 - **Note Offline-First** : `enableIndexedDbPersistence()` inexistante sur Realtime Database (API Firestore uniquement) — comportement offline déjà assuré par le double-save localStorage existant, documenté à la place d'une fausse implémentation.
 
-### 📋 Lot 06 — Assistant IA & RAG PDF [PLANIFIÉ]
+### ✅ Lot 06 — Assistant IA & RAG PDF [CLOTURÉ]
 **Objectif** : Intégrer les PDF de COF sous forme de base de connaissances (RAG) et automatiser l'intégration du contexte pour l'assistant Gemini.
-- **Fonctionnalités** :
-  - *RAG double-index* : Index public de règles (`cof_rules_embeddings.json`) et index MJ de campagne (`cof_campaign_embeddings.json`) basés sur les PDF de la campagne Anathazerïn. Cosine similarity locale pour injecter les 3 meilleurs extraits de règles dans le prompt.
-  - *Contexte de combat auto-injecté* : Gemini reçoit automatiquement le round, les PV, les états et les derniers logs sans copier-coller manuel.
-  - *Récapitulatif combat narratif* : Gemini rédige un résumé romancé de la bataille à partir du journal des logs.
+- **Livré** : RAG double-index client-side (règles et campagne scenarios 1-9), calcul local de cosine similarity, auto-injection des 10 dernières actions de combat dans le contexte Gemini, et génération de résumé narratif épique pour le MJ. Cache v12, linter OK, 161/161 tests unitaires verts.
 
 ### 📋 Lot 07 — Importateurs & Fiches [PLANIFIÉ]
 **Objectif** : Faciliter la saisie et le partage des personnages et monstres via les PDF et le format JSON.
@@ -91,6 +88,9 @@ PWA TTRPG (Chroniques Oubliées Fantasy) — suivi de combat MJ/Joueurs, dés, f
   - *Importateur de fiche PJ (PDF)* : Lecture des champs de formulaires d'une fiche PDF officielle COF importée pour pré-remplir le personnage.
   - *Import/Export JSON* : Téléchargement et import de fiches personnages au format `.json`.
   - *Groupes & Factions* : Séparateurs visuels et filtres entre PJ, PNJ alliés et Ennemis.
+  - *Optimisations IA & RAG (Décisions 1 & 2)* :
+    - Implémentation du batching (`batchEmbedContents` par lots de 100) dans le script `generate-embeddings.js` avec clé API chargée via `.env` local, court-circuitant le Cloudflare Worker d'administration.
+    - Switch vers le modèle `text-embedding-004` (dans `rag.js` et `generate-embeddings.js`) et régénération complète des index d'embeddings.
 
 ### 📋 Lot 08 — Messagerie, Dés & Archiving [PLANIFIÉ]
 **Objectif** : Améliorer les interactions en direct et pérenniser l'historique de jeu.
@@ -107,7 +107,7 @@ PWA TTRPG (Chroniques Oubliées Fantasy) — suivi de combat MJ/Joueurs, dés, f
   - *Firebase Delta Sync* : Remplacement des sauvegardes globales par des écritures de champs chirurgicales.
   - *Compteur d'écritures en vol (F5)* : Résolution des race conditions réseau via un compteur global plutôt qu'un flag booléen `_fbIgnoreNext`.
   - *Merge intelligent (F6)* : Résolution des conflits temporels par fusion d'identifiants de logs à la place du seuil arbitraire de 2s.
-  - *Désabonnement propre (F7)* : Nettoyage des écoutes Firebase lors des changements de rôles/modes pour éviter les fuites de mémoire.
+  - *Désabonnement propre (F7 - Décision 3)* : Nettoyage des écoutes Firebase (`onValue` unsubscribe) lors des changements de rôles/modes pour éviter les fuites de mémoire et les requêtes réseau superflues.
 
 ---
 

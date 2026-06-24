@@ -1,16 +1,14 @@
 # task.md — Anathazerïn Tracker
 
-## 📋 Lot en cours : Lot 06 — Assistant IA & RAG PDF [CLOTURÉ ✅]
+## 📋 Lot en cours : Lot 07 — Importateurs & Fiches [PLANIFIÉ ⏳]
 
 ### Tâches
-- [x] RAG : Créer le script de génération d'embeddings `scripts/generate-embeddings.js` (extraction PDF via `pdftotext` + Embedding API)
-- [ ] RAG : Générer et stocker les fichiers d'embeddings `public/cof_rules_embeddings.json` et `public/cof_campaign_embeddings.json` (scénarios 1-9) — à exécuter manuellement : `npm run generate-embeddings <API_KEY>`
-- [x] RAG : Charger les index RAG dans l'application au démarrage ou à l'ouverture de l'onglet Assistant (`loadRAGIndexes` dans `initAssistantTab`)
-- [x] RAG : Implémenter la recherche vectorielle locale (cosine similarity) dans `src/modules/assistant/rag.js` (module dédié, R5)
-- [x] RAG : Injecter les 3 chunks les plus pertinents dans la question posée à Gemini dans le prompt système (`queryRAG` dans `sendAI`)
-- [x] Contexte Combat : Enrichir `buildAiContext()` dans `gemini.js:117` pour auto-injecter les 10 dernières lignes de logs de combat
-- [x] Récit de Combat : Bouton "✨ Récit de combat IA" (MJ uniquement) dans `messages.js:219` + `generateNarrativeSummary()` avec `thinkingBudget:0`
-- [x] Tests & Qualité : `tests/assistant.test.js` — 12 tests (cosineSimilarity, getTopChunks, buildAiContext) — 161/161 ✅
+- [ ] Import : Convertir bloc de stats ou page PDF de monstres/PNJ en JSON structuré via Gemini
+- [ ] Import : Lire les champs de formulaires d'une fiche PDF officielle COF
+- [ ] Données : Import/Export de fiches personnages au format JSON
+- [ ] UI : Séparateurs visuels et filtres entre PJ, PNJ alliés et Ennemis
+- [ ] RAG : Implémenter le batching local (`batchEmbedContents` par lots de 100) dans `scripts/generate-embeddings.js` (clé API `.env` en local, bypass Worker)
+- [ ] RAG : Switcher vers le modèle `text-embedding-004` (dans `rag.js` et `generate-embeddings.js`) et régénérer les index
 
 ---
 
