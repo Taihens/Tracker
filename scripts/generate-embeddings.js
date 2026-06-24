@@ -1,33 +1,31 @@
-﻿#!/usr/bin/env node
-// Usage: node scripts/generate-embeddings.js <GEMINI_API_KEY>
+#!/usr/bin/env node
+// Usage: node scripts/generate-embeddings.js [GEMINI_API_KEY]
+//        Or: node --env-file=.env scripts/generate-embeddings.js
 // Prérequis: pdftotext (Poppler) installé et dans le PATH
 //
 // Sources règles : pdf/chroniques-oubliees.pdf + pdf/bestiaire COF.pdf
-// Note (P4): pdf/chroniques-oubliees/ contient 5 PDF thématiques découpés
-// (création perso, équipement, règles optionnelles, bestiaire, scénario 1).
-// Alternative : remplacer pdf/chroniques-oubliees.pdf par ces 5 fichiers pour
-// des chunks plus ciblés et moins de bruit inter-thèmes.
-//
+// Note (P4): pdf/chroniques-oubliees/ contient 5 PDF thématiques découpés.
 // Sources campagne : pdf/[1-9]*.pdf (scénarios 1-9, exclut 10-13 anti-spoil)
-// Modèle : gemini-embedding-2 (embedContent individuel, 15 en parallèle)
+// Modèle : text-embedding-004 (batchEmbedContents, lots de 100 chunks)
 
 import { execSync } from 'child_process';
 import { readdirSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { fileURLToPath } from 'url';
 
-const API_KEY = process.argv[2];
+const API_KEY = process.env.GEMINI_API_KEY || process.argv[2];
 if (!API_KEY) {
   console.error('Usage: node scripts/generate-embeddings.js <GEMINI_API_KEY>');
+  console.error('  Or:   node --env-file=.env scripts/generate-embeddings.js (Node 24+)');
   process.exit(1);
 }
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
-const EMBED_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:embedContent?key=${API_KEY}`;
+const BATCH_URL = `https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:batchEmbedContents?key=${API_KEY}`;
 const CHUNK_SIZE = 700;
 const OVERLAP = 100;
-const PARALLEL = 3;    // appels simultanés
-const DELAY_MS = 500;  // pause entre lots pour éviter rate-limit
+const BATCH_SIZE = 100;   // chunks par requête batchEmbedContents
+const DELAY_MS = 500;     // pause entre batches pour éviter rate-limit
 
 function getPageCount(pdfPath) {
   try {
@@ -55,20 +53,21 @@ function chunkText(text, source, page) {
   return chunks;
 }
 
-async function embedOne(chunk, retries = 3) {
+async function embedBatch(chunks, retries = 3) {
+  const requests = chunks.map(c => ({
+    model: 'models/text-embedding-004',
+    content: { parts: [{ text: c.text }] },
+  }));
   for (let attempt = 0; attempt < retries; attempt++) {
     try {
-      const res = await fetch(EMBED_URL, {
+      const res = await fetch(BATCH_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'models/gemini-embedding-2',
-          content: { parts: [{ text: chunk.text }] },
-        }),
+        body: JSON.stringify({ requests }),
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error.message);
-      return { ...chunk, embedding: data.embedding.values };
+      return data.embeddings.map((emb, i) => ({ ...chunks[i], embedding: emb.values }));
     } catch (err) {
       if (attempt === retries - 1) throw err;
       await new Promise(r => setTimeout(r, 500 * (attempt + 1)));
@@ -76,15 +75,16 @@ async function embedOne(chunk, retries = 3) {
   }
 }
 
-async function embedParallel(chunks) {
+async function embedAll(chunks) {
   const results = [];
-  for (let i = 0; i < chunks.length; i += PARALLEL) {
-    const lot = chunks.slice(i, i + PARALLEL);
-    const embedded = await Promise.all(lot.map(c => embedOne(c)));
+  for (let i = 0; i < chunks.length; i += BATCH_SIZE) {
+    const lot = chunks.slice(i, i + BATCH_SIZE);
+    const embedded = await embedBatch(lot);
     results.push(...embedded);
-    const pct = Math.round(((i + lot.length) / chunks.length) * 100);
-    process.stdout.write(`\r    ${i + lot.length}/${chunks.length} chunks (${pct}%)   `);
-    if (i + PARALLEL < chunks.length) await new Promise(r => setTimeout(r, DELAY_MS));
+    const done = i + lot.length;
+    const pct = Math.round((done / chunks.length) * 100);
+    process.stdout.write(`\r    ${done}/${chunks.length} chunks (${pct}%)   `);
+    if (i + BATCH_SIZE < chunks.length) await new Promise(r => setTimeout(r, DELAY_MS));
   }
   console.log();
   return results;
@@ -101,11 +101,11 @@ async function processPDF(pdfPath) {
     chunks.push(...chunkText(text, source, p));
   }
   console.log(`  → ${chunks.length} chunks sur ${pages} pages`);
-  return embedParallel(chunks);
+  return embedAll(chunks);
 }
 
 async function main() {
-  console.log('\n=== Génération des embeddings RAG COF (gemini-embedding-2) ===\n');
+  console.log('\n=== Génération des embeddings RAG COF (text-embedding-004) ===\n');
 
   console.log('--- RÈGLES ---');
   const rulesChunks = [

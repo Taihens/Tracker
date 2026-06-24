@@ -22,6 +22,7 @@ public/cof_campaign_embeddings.json
 # Divers
 *.log
 .DS_Store
+repomix-output.*
 
 .vercel
 .env*

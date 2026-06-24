@@ -81,16 +81,9 @@ PWA TTRPG (Chroniques Oubliées Fantasy) — suivi de combat MJ/Joueurs, dés, f
 **Objectif** : Intégrer les PDF de COF sous forme de base de connaissances (RAG) et automatiser l'intégration du contexte pour l'assistant Gemini.
 - **Livré** : RAG double-index client-side (règles et campagne scenarios 1-9), calcul local de cosine similarity, auto-injection des 10 dernières actions de combat dans le contexte Gemini, et génération de résumé narratif épique pour le MJ. Cache v12, linter OK, 161/161 tests unitaires verts.
 
-### 📋 Lot 07 — Importateurs & Fiches [PLANIFIÉ]
+### ✅ Lot 07 — Importateurs & Fiches [CLOTURÉ]
 **Objectif** : Faciliter la saisie et le partage des personnages et monstres via les PDF et le format JSON.
-- **Fonctionnalités** :
-  - *Importateur de monstre/PNJ PDF* : Copier-coller de bloc de stats ou envoi de page PDF → Gemini convertit en JSON structuré → import immédiat.
-  - *Importateur de fiche PJ (PDF)* : Lecture des champs de formulaires d'une fiche PDF officielle COF importée pour pré-remplir le personnage.
-  - *Import/Export JSON* : Téléchargement et import de fiches personnages au format `.json`.
-  - *Groupes & Factions* : Séparateurs visuels et filtres entre PJ, PNJ alliés et Ennemis.
-  - *Optimisations IA & RAG (Décisions 1 & 2)* :
-    - Implémentation du batching (`batchEmbedContents` par lots de 100) dans le script `generate-embeddings.js` avec clé API chargée via `.env` local, court-circuitant le Cloudflare Worker d'administration.
-    - Switch vers le modèle `text-embedding-004` (dans `rag.js` et `generate-embeddings.js`) et régénération complète des index d'embeddings.
+- **Livré** : Importateur Monstre/PNJ (texte+PDF → Gemini → JSON), Importateur Fiche PJ (AcroForm PDF.js + fallback Gemini), Import/Export JSON avec validation XSS et gestion des collisions d'ID, Groupes & Factions (PJ/PNJ alliés/Ennemis) avec filter bar roster et sélecteur dans l'éditeur, optimisations RAG (`text-embedding-004`, batching 100, .env). Cache v13, 178/178 tests unitaires verts. Handoff : `handoff/handoff07_importateurs-fiches.zip`.
 
 ### 📋 Lot 08 — Messagerie, Dés & Archiving [PLANIFIÉ]
 **Objectif** : Améliorer les interactions en direct et pérenniser l'historique de jeu.

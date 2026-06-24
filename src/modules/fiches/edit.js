@@ -27,8 +27,12 @@ export function fi(label,key,val,type='text',full=false){
 }
 export function buildStatTab(){
   const c=editData,a=c.attrs||{};
+  const groupe=c.groupe||'PJ';
+  const groupeSelect=`<div class="ef"><label>Groupe</label><select data-key="groupe" onchange="if(editData)editData.groupe=this.value" style="background:var(--bg3);border:1px solid var(--bdr);color:var(--wht);font-family:'Crimson Text',serif;font-size:13px;padding:4px 6px;border-radius:2px;width:100%">
+    ${['PJ','PNJ_allié','Ennemi'].map(g=>`<option value="${g}"${groupe===g?' selected':''}>${g==='PJ'?'⚔ PJ':g==='PNJ_allié'?'🤝 PNJ Allié':'💀 Ennemi'}</option>`).join('')}
+  </select></div>`;
   document.getElementById('m-tab-stats').innerHTML=`<div class="ed-grid">
-    ${fi('Nom','name',c.name,'text',true)}${fi('Classe','classe',c.classe||'')}${fi('Race','race',c.race||'')}
+    ${fi('Nom','name',c.name,'text',true)}${fi('Classe','classe',c.classe||'')}${fi('Race','race',c.race||'')}${groupeSelect}
     ${fi('Niveau','niveau',c.niveau,'number')}${fi('DV','dv',c.dv||'D6')}
     <div class="ed-sep">Points de Vie</div>
     ${fi('PV Max','pvMax',c.pvMax,'number')}${fi('PV Actuels','pvActuel',c.pvActuel,'number')}

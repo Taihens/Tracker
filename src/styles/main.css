@@ -286,6 +286,10 @@ tr:hover td{background:rgba(200,147,64,.03)}
 .roster-item.absent-item{opacity:.5}
 .roster-item.pending-item{border-left:3px solid var(--blu2)!important}
 .roster-item.hidden-item{border-left:3px dashed var(--bdr)!important}
+.roster-group-header{font-family:'Cinzel',serif;font-size:9px;color:var(--gold2);letter-spacing:.08em;text-transform:uppercase;padding:6px 4px 2px;border-bottom:1px solid var(--bdr);margin-top:6px;margin-bottom:2px}
+.roster-filter-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.roster-filter-btn{font-size:9px;padding:3px 8px;border-radius:2px;background:var(--bg3);border:1px solid var(--bdr);color:var(--txt2);cursor:pointer;white-space:nowrap}
+.roster-filter-btn.active{background:rgba(200,147,64,.15);border-color:var(--gold);color:var(--gold3)}
 .ri-name{font-family:'Cinzel',serif;font-size:13px;color:var(--wht);flex:1}
 .ri-sub{font-size:11px;color:var(--txt2)}
 .toggle-pres{font-family:'Cinzel',serif;font-size:8.5px;letter-spacing:.07em;padding:4px 11px;border-radius:2px;cursor:pointer;border:none;transition:.15s;text-transform:uppercase}

@@ -1,14 +1,13 @@
 # task.md — Anathazerïn Tracker
 
-## 📋 Lot en cours : Lot 07 — Importateurs & Fiches [PLANIFIÉ ⏳]
+## 📋 Lot en cours : Lot 08 — Messagerie, Dés & Archiving [PLANIFIÉ ⏳]
 
 ### Tâches
-- [ ] Import : Convertir bloc de stats ou page PDF de monstres/PNJ en JSON structuré via Gemini
-- [ ] Import : Lire les champs de formulaires d'une fiche PDF officielle COF
-- [ ] Données : Import/Export de fiches personnages au format JSON
-- [ ] UI : Séparateurs visuels et filtres entre PJ, PNJ alliés et Ennemis
-- [ ] RAG : Implémenter le batching local (`batchEmbedContents` par lots de 100) dans `scripts/generate-embeddings.js` (clé API `.env` en local, bypass Worker)
-- [ ] RAG : Switcher vers le modèle `text-embedding-004` (dans `rag.js` et `generate-embeddings.js`) et régénérer les index
+- [ ] Logs : Limitation et archivage permanent des sessions dans `/sessions/{N}/log` sur Firebase + cumul des stats `state.logStats`
+- [ ] Logs : Export du journal de session actif en Markdown (`.md`)
+- [ ] Fiches : Clic sur le bonus d'une arme/compétence lance automatiquement le dé associé
+- [ ] Chat : Commande `/roll` envoyant les jets de dés formatés dans les messages
+- [ ] UI/Ergonomie : Notifications push PWA, chronomètre de round et vue compacte
 
 ---
 
@@ -21,3 +20,4 @@
 * **Lot 04 — Améliorations UX Combat (Undo & Récupération)** : Clôturé ✅ (Bouton Undo global, point de récup individuel)
 * **Lot 05 — Qualité de vie, Offline & Sécurité** : Clôturé ✅ (PBKDF2, notes adaptatives, tri initiative, XSS, Chevalier DV)
 * **Lot 06 — Assistant IA & RAG PDF** : Clôturé ✅ (RAG 3 526 chunks, logs combat auto-injectés, récit narratif IA, Worker sans clé client)
+* **Lot 07 — Importateurs & Fiches** : Clôturé ✅ (Import PNJ/monstre IA, AcroForm PDF, Import/Export JSON, Groupes de roster, RAG text-embedding-004)

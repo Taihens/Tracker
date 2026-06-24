@@ -30,12 +30,17 @@ import * as modalsNs from './ui/modals.js';
 import * as etatsNs from './ui/etats.js';
 import * as settingsNs from './ui/settings.js';
 import * as modeNs from './ui/mode.js';
+import * as groupesNs from './ui/groupes.js';
+import * as jsonIoNs from './import/json-io.js';
+import * as monsterNs from './import/monster.js';
+import * as charPdfNs from './import/character-pdf.js';
 
 const NAMESPACES = [
   stateNs, storageNs, firebaseNs, diceNs, combatNs, messagesNs, recapNs,
   rosterNs, cofNs, fichesRenderNs, fichesWizardNs, fichesEditNs,
   levelupWizardNs, levelupPendingNs, geminiNs, cofImportNs,
   uiRenderNs, toastNs, tabsNs, modalsNs, etatsNs, settingsNs, modeNs,
+  groupesNs, jsonIoNs, monsterNs, charPdfNs,
 ];
 
 export function bindGlobals(){

@@ -27,6 +27,8 @@ export function openModeModal(){
     document.getElementById('mj-act-row').style.display='none';
     const editBtn=document.getElementById('fiche-edit-btn');
     if(editBtn) editBtn.style.display='none';
+    const _bm=document.getElementById('btn-import-monster');if(_bm)_bm.style.display='none';
+    const _bp=document.getElementById('btn-import-char-pdf');if(_bp)_bp.style.display='none';
     updateUndoButtonVisibility();
     openCharSelect();
   } else {
@@ -79,6 +81,8 @@ export function setMode(mode){
     document.getElementById('nav-settings').classList.remove('hidden');
     document.getElementById('mj-act-row').style.display='';
     document.getElementById('fiche-edit-btn').style.display='';
+    const _bm=document.getElementById('btn-import-monster');if(_bm)_bm.style.display='';
+    const _bp=document.getElementById('btn-import-char-pdf');if(_bp)_bp.style.display='';
     sessionStorage.setItem('anathazer_session_mode','mj');
     sessionStorage.removeItem('anathazer_session_char');
     localStorage.setItem('anathazer_last_mode','mj');
@@ -94,6 +98,8 @@ export function setMode(mode){
     document.getElementById('nav-roster').classList.remove('hidden');
     document.getElementById('nav-settings').classList.remove('hidden');
     document.getElementById('mj-act-row').style.display='none';
+    const _bm2=document.getElementById('btn-import-monster');if(_bm2)_bm2.style.display='none';
+    const _bp2=document.getElementById('btn-import-char-pdf');if(_bp2)_bp2.style.display='none';
     sessionStorage.setItem('anathazer_session_mode','joueur');
     if(selectedPlayerChar) sessionStorage.setItem('anathazer_session_char',String(selectedPlayerChar));
     localStorage.setItem('anathazer_last_mode','joueur');

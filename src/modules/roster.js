@@ -8,6 +8,7 @@ import { save, firebaseDB, _fbConnected, ref, set, onValue } from './firebase.js
 import { getCharPwds, setCharPwds } from './storage.js';
 import { DEFAULT_CHARS } from './constants.js';
 import { pendingLvlUps, fbSavePendingLvlUp } from './levelup.js';
+import { groupChars, applyGroupFilter, renderGroupHeader, renderGroupFilterBar, GROUPE_ORDER, GROUPE_LABELS } from './ui/groupes.js';
 
 // ── PENDING CHARS ──
 export let pendingChars={};
@@ -112,61 +113,77 @@ export function renderRoster(){
   const visibleChars = isMJ
     ? state.chars
     : state.chars.filter(c => {
-        if(!c.hidden && !c.pending) return true; // visible to all
-        if(c.id === selectedPlayerChar) return true; // always show own char
-        if(c.createdBy === selectedPlayerChar) return true; // show chars you created
-        return false; // hidden or pending from others = invisible
+        if(!c.hidden && !c.pending) return true;
+        if(c.id === selectedPlayerChar) return true;
+        if(c.createdBy === selectedPlayerChar) return true;
+        return false;
       });
 
-  document.getElementById('roster-list').innerHTML=visibleChars.map(c=>{
+  const mjRow = c => {
+    const hasHistory=c.niveau>(DEFAULT_CHARS.find(d=>d.id===c.id)?.niveau||8);
+    const hasPwd=!!getCharPwds()[c.id];
+    const isPending=!!c.pending;
+    return`<div class="roster-item${!c.present?' absent-item':''}${isPending?' pending-item':''}${c.hidden?' hidden-item':''}">
+      <div style="flex:1;min-width:0">
+        <div class="ri-name" style="display:flex;flex-wrap:wrap;gap:4px;align-items:center">
+          ${c.name}${hasPwd?' <span style="font-size:9px;color:var(--gold2)">🔒</span>':''}
+          ${isPending?`<span style="font-family:Cinzel,serif;font-size:7px;color:var(--blu3);border:1px solid var(--blu2);padding:1px 5px;border-radius:2px;white-space:nowrap">⏳ En attente</span>`:''}
+          ${c.hidden?`<span style="font-family:Cinzel,serif;font-size:7px;color:var(--txt3);border:1px solid var(--bdr);padding:1px 5px;border-radius:2px;white-space:nowrap">👁 Caché</span>`:''}
+        </div>
+        <div class="ri-sub">${c.classe} ${c.race} — Niv. ${c.niveau} — PV ${c.pvActuel}/${c.pvMax}${c.pmMax>0?` — PM ${c.pmActuel}/${c.pmMax}`:''}${c.pcMax>0?` — PC ${c.pcActuel}/${c.pcMax}`:''}</div>
+      </div>
+      <button class="btn btn-g" style="font-size:8px" onclick="openLvlUp(${c.id})">↑</button>
+      ${hasHistory?`<button class="btn btn-r" style="font-size:8px" onclick="undoLvlUp(${c.id})">↓</button>`:''}
+      ${isPending?`<button class="btn btn-g" style="font-size:8px;background:rgba(26,45,74,.3);border-color:var(--blu2);color:var(--blu3)" onclick="mjValidateChar(${c.id})">✓ Valider</button>`:''}
+      ${hasPwd?`<button class="btn btn-r" style="font-size:8px" onclick="mjRemoveCharPwd(${c.id})">🔒✕</button>`:''}
+      <button class="btn" style="font-size:8px;background:rgba(26,45,74,.3);border-color:var(--blu2);color:var(--blu3)" onclick="openPlayerLog(${c.id})">📜</button>
+      <button class="btn" style="font-size:8px;background:${c.hidden?'rgba(60,60,60,.3)':'rgba(26,45,74,.15)'};border-color:var(--bdr);color:var(--txt2)" onclick="toggleHiddenChar(${c.id})">${c.hidden?'👁':'🙈'}</button>
+      <button class="toggle-pres ${c.present?'tp-on':'tp-off'}" onclick="togglePresent(${c.id})">${c.present?'✓':'✗'}</button>
+      <button class="btn btn-g" style="font-size:8px" onclick="openEdit(${c.id})">✏</button>
+      <button class="btn-del" onclick="deleteChar(${c.id})">✕</button>
+    </div>`;
+  };
+
+  const playerRow = c => {
     const isOwn = c.id === selectedPlayerChar;
-    if(isMJ){
-      const hasHistory=c.niveau>(DEFAULT_CHARS.find(d=>d.id===c.id)?.niveau||8);
-      const hasPwd=!!getCharPwds()[c.id];
-      const isPending=!!c.pending;
-      return`<div class="roster-item${!c.present?' absent-item':''}${isPending?' pending-item':''}${c.hidden?' hidden-item':''}">
-        <div style="flex:1;min-width:0">
-          <div class="ri-name" style="display:flex;flex-wrap:wrap;gap:4px;align-items:center">
-            ${c.name}${hasPwd?' <span style="font-size:9px;color:var(--gold2)">🔒</span>':''}
-            ${isPending?`<span style="font-family:Cinzel,serif;font-size:7px;color:var(--blu3);border:1px solid var(--blu2);padding:1px 5px;border-radius:2px;white-space:nowrap">⏳ En attente</span>`:''}
-            ${c.hidden?`<span style="font-family:Cinzel,serif;font-size:7px;color:var(--txt3);border:1px solid var(--bdr);padding:1px 5px;border-radius:2px;white-space:nowrap">👁 Caché</span>`:''}
-          </div>
-          <div class="ri-sub">${c.classe} ${c.race} — Niv. ${c.niveau} — PV ${c.pvActuel}/${c.pvMax}${c.pmMax>0?` — PM ${c.pmActuel}/${c.pmMax}`:''}${c.pcMax>0?` — PC ${c.pcActuel}/${c.pcMax}`:''}</div>
+    const hasPending=!!pendingLvlUps[c.id];
+    const isPending=!!c.pending;
+    return`<div class="roster-item${!c.present?' absent-item':''}${isPending?' pending-item':''}" style="${isPending?'opacity:0.5;filter:grayscale(0.5)':''}">
+      <div style="flex:1;min-width:0">
+        <div class="ri-name" style="display:flex;flex-wrap:wrap;gap:4px;align-items:center">
+          <span>${c.name}</span>
+          ${isOwn?`<span style="font-family:Cinzel,serif;font-size:7px;color:var(--grn3);border:1px solid var(--grn2);padding:1px 5px;border-radius:2px;white-space:nowrap">MON PERSO</span>`:''}
+          ${isPending?`<span style="font-family:Cinzel,serif;font-size:7px;color:var(--txt3);border:1px solid var(--bdr);padding:1px 5px;border-radius:2px;white-space:nowrap">⏳ En attente MJ</span>`:''}
+          ${isOwn&&hasPending?`<span style="font-family:Cinzel,serif;font-size:7px;color:var(--gold);border:1px solid var(--gold);padding:1px 5px;border-radius:2px;white-space:nowrap">⏳ Lvl Up</span>`:''}
         </div>
-        <button class="btn btn-g" style="font-size:8px" onclick="openLvlUp(${c.id})">↑</button>
-        ${hasHistory?`<button class="btn btn-r" style="font-size:8px" onclick="undoLvlUp(${c.id})">↓</button>`:''}
-        ${isPending?`<button class="btn btn-g" style="font-size:8px;background:rgba(26,45,74,.3);border-color:var(--blu2);color:var(--blu3)" onclick="mjValidateChar(${c.id})">✓ Valider</button>`:''}
-        ${hasPwd?`<button class="btn btn-r" style="font-size:8px" onclick="mjRemoveCharPwd(${c.id})">🔒✕</button>`:''}
-        <button class="btn" style="font-size:8px;background:rgba(26,45,74,.3);border-color:var(--blu2);color:var(--blu3)" onclick="openPlayerLog(${c.id})">📜</button>
-        <button class="btn" style="font-size:8px;background:${c.hidden?'rgba(60,60,60,.3)':'rgba(26,45,74,.15)'};border-color:var(--bdr);color:var(--txt2)" onclick="toggleHiddenChar(${c.id})">${c.hidden?'👁':'🙈'}</button>
-        <button class="toggle-pres ${c.present?'tp-on':'tp-off'}" onclick="togglePresent(${c.id})">${c.present?'✓':'✗'}</button>
-        <button class="btn btn-g" style="font-size:8px" onclick="openEdit(${c.id})">✏</button>
-        <button class="btn-del" onclick="deleteChar(${c.id})">✕</button>
-      </div>`;
-    } else {
-      const hasPending=!!pendingLvlUps[c.id];
-      const isPending=!!c.pending;
-      const isMyPending=isPending&&c.createdBy===selectedPlayerChar;
-      return`<div class="roster-item${!c.present?' absent-item':''}${isPending?' pending-item':''}" style="${isPending?'opacity:0.5;filter:grayscale(0.5)':''}">
-        <div style="flex:1;min-width:0">
-          <div class="ri-name" style="display:flex;flex-wrap:wrap;gap:4px;align-items:center">
-            <span>${c.name}</span>
-            ${isOwn?`<span style="font-family:Cinzel,serif;font-size:7px;color:var(--grn3);border:1px solid var(--grn2);padding:1px 5px;border-radius:2px;white-space:nowrap">MON PERSO</span>`:''}
-            ${isPending?`<span style="font-family:Cinzel,serif;font-size:7px;color:var(--txt3);border:1px solid var(--bdr);padding:1px 5px;border-radius:2px;white-space:nowrap">⏳ En attente MJ</span>`:''}
-            ${isOwn&&hasPending?`<span style="font-family:Cinzel,serif;font-size:7px;color:var(--gold);border:1px solid var(--gold);padding:1px 5px;border-radius:2px;white-space:nowrap">⏳ Lvl Up</span>`:''}
-          </div>
-          <div class="ri-sub">${c.classe} ${c.race} — Niv. ${c.niveau} — PV ${c.pvActuel}/${c.pvMax}${c.pmMax>0?` — PM ${c.pmActuel}/${c.pmMax}`:''}${c.pcMax>0?` — PC ${c.pcActuel}/${c.pcMax}`:''} — ${c.etat}</div>
-        </div>
-        <button class="toggle-pres ${c.present?'tp-on':'tp-off'}" onclick="togglePresent(${c.id})">${c.present?'✓':'✗'}</button>
-        ${isOwn&&!isPending&&!hasPending?`<button class="btn btn-g" style="font-size:8px" onclick="openLvlUp(${c.id})">↑</button>`:''}
-        ${isOwn&&hasPending?`<button class="btn btn-r" style="font-size:8px" onclick="cancelPlayerLvlUp(${c.id})">✕ LvlUp</button>`:''}
-        ${isOwn?`<button class="btn btn-g" style="font-size:8px" onclick="openEdit(${c.id})">✏</button>`:''}
-        ${isOwn&&isPending?`<button class="btn btn-r" style="font-size:8px" onclick="cancelCharSubmission(${c.id})">✕ Annuler</button>`:''}
-        ${isOwn&&!isPending&&c.createdBy===selectedPlayerChar?`<button class="btn btn-g" style="font-size:8px;background:rgba(26,45,74,.3);border-color:var(--blu2);color:var(--blu3)" onclick="submitCharForValidation(${c.id})">✦ Soumettre</button>`:''}
-        ${c.createdBy===selectedPlayerChar&&!isPending?`<button class="btn-del" onclick="deleteChar(${c.id})">✕</button>`:''}
-      </div>`;
+        <div class="ri-sub">${c.classe} ${c.race} — Niv. ${c.niveau} — PV ${c.pvActuel}/${c.pvMax}${c.pmMax>0?` — PM ${c.pmActuel}/${c.pmMax}`:''}${c.pcMax>0?` — PC ${c.pcActuel}/${c.pcMax}`:''} — ${c.etat}</div>
+      </div>
+      <button class="toggle-pres ${c.present?'tp-on':'tp-off'}" onclick="togglePresent(${c.id})">${c.present?'✓':'✗'}</button>
+      ${isOwn&&!isPending&&!hasPending?`<button class="btn btn-g" style="font-size:8px" onclick="openLvlUp(${c.id})">↑</button>`:''}
+      ${isOwn&&hasPending?`<button class="btn btn-r" style="font-size:8px" onclick="cancelPlayerLvlUp(${c.id})">✕ LvlUp</button>`:''}
+      ${isOwn?`<button class="btn btn-g" style="font-size:8px" onclick="openEdit(${c.id})">✏</button>`:''}
+      ${isOwn&&isPending?`<button class="btn btn-r" style="font-size:8px" onclick="cancelCharSubmission(${c.id})">✕ Annuler</button>`:''}
+      ${isOwn&&!isPending&&c.createdBy===selectedPlayerChar?`<button class="btn btn-g" style="font-size:8px;background:rgba(26,45,74,.3);border-color:var(--blu2);color:var(--blu3)" onclick="submitCharForValidation(${c.id})">✦ Soumettre</button>`:''}
+      ${c.createdBy===selectedPlayerChar&&!isPending?`<button class="btn-del" onclick="deleteChar(${c.id})">✕</button>`:''}
+    </div>`;
+  };
+
+  let html = '';
+  if (isMJ) {
+    const filtered = applyGroupFilter(visibleChars);
+    const groups = groupChars(filtered);
+    const nonEmpty = GROUPE_ORDER.filter(g => groups[g].length);
+    html += renderGroupFilterBar();
+    for (const g of GROUPE_ORDER) {
+      if (!groups[g].length) continue;
+      if (nonEmpty.length > 1) html += renderGroupHeader(GROUPE_LABELS[g]);
+      html += groups[g].map(mjRow).join('');
     }
-  }).join('');
+  } else {
+    html = visibleChars.map(playerRow).join('');
+  }
+
+  document.getElementById('roster-list').innerHTML = html;
 
   // Bouton ajouter perso (joueurs aussi)
   const addBtn=document.querySelector('.add-char-btn');
