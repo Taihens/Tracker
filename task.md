@@ -78,8 +78,26 @@
 
 ---
 
-## Lot suivant : Lot 02c — Optimisations & Améliorations
-> Optimisation de l'état (indexation ID O(1)), async/await IA Gemini, imports statiques Firebase, re-rendus ciblés.
+## Lot précédent : Lot 02c — Optimisations & Améliorations [CLOTURÉ]
+> Indexation état O(1), modales promisifiées, imports Firebase statiques, re-rendus ciblés, 3 bugs historiques.
+
+### Tâches
+- [x] Indexation O(1) : `charsMap` + `getChar(id)` (state.js), substitution des `find` linéaires (combat/render/state)
+- [x] Modales promisifiées : `showActionConfirm → Promise<boolean>` ; appelants combat.js + roster.js en async/await (compat `onConfirm`)
+- [x] Imports Firebase statiques via npm ; suppression CDN dynamique (firebase.js, cof-import.js, main.js) ; réexports centralisés
+- [x] Rendu DOM ciblé : `updateCardDOM` (cas A structure / cas B maj) — focus conservé pendant sync
+- [x] 3 bugs historiques : garde DOM `applyDmg`, `logId` unique, fallback `niveau || 1`
+- [x] Fix bonus : garde `state.log` dans `setState` (crash applyDmg si état resync sans clé log)
+- [x] R1 : CACHE `sw.js` v7 → v8
+- [x] Tests : `render.test.js` (5) + maj `combat.test.js` → 74/74 verts ; lint 0 err ; build OK
+- [x] Validation navigateur (Taihens) : 5 volets OK (`docs/verif_navigateur_lot02c.md`)
+- [x] Handoff `handoff04_lot02c.zip` (§5) ; mailbox clôture émise ; prompt 02c renommé `-clos`
+- [x] Commit `489ca29`
+
+### Hors périmètre (remonté à Gémi)
+- Undo permanent / bouton physique (5 actions + resetAll) → lot dédié (spec Gémi reçue)
+- Point de Récupération individuel par perso → en attente spec
+- 3 fichiers reformatés cosmétiquement (index.html, ui/mode.js, styles/main.css) exclus du commit → chore format ou revert à arbitrer
 
 ---
 

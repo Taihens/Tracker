@@ -41,19 +41,31 @@ PWA TTRPG (Chroniques Oubliées Fantasy) — suivi de combat MJ/Joueurs, dés, f
 - **Couverture prioritaire** : tests unitaires complets sur la logique de combat du module `src/modules/combat.js` (calculs de dégâts, soins, PV/PM/PC, gestion des états).
 - **Livré** : `tests/combat.test.js` — 66 tests verts (18 fonctions caractérisées), Vitest + happy-dom, mocks isolant state/firebase/cof-classes/constants. 3 bugs historiques tagués, non corrigés (réservés Lot 02c). Suite totale : 69/69.
 
-### 📋 Lot 02c — Optimisations & Améliorations [PLANIFIÉ]
+### ✅ Lot 02c — Optimisations & Améliorations [CLOTURÉ]
 **Objectif** : Améliorations de performance, réécriture comportementale et refonte de l'état.
-- **Optimisations** :
-  - *État* : Indexation de `state.chars` par ID ($O(1)$) au lieu de boucles linéaires.
-  - *IA Gemini* : Passage en `async/await` pour supprimer le callback hell.
-  - *Firebase* : Remplacement des imports Firebase dynamiques par des imports statiques.
-  - *Rendu* : Optimisation des re-rendus DOM (re-rendus ciblés par ID/classe au lieu de re-rendus globaux).
+- **Optimisations livrées** :
+  - *État* : Indexation de `state.chars` par ID ($O(1)$) via `charsMap` + `getChar(id)`.
+  - *Dialogues* : Modales de confirmation promisifiées (`showActionConfirm → Promise`, `async/await`) — fin du callback hell.
+  - *Firebase* : Imports statiques via package npm (suppression des imports CDN dynamiques) — validé 0 requête `firebasejs`.
+  - *Rendu* : Re-rendus DOM ciblés (`updateCardDOM`, cas A/B) — focus/saisie conservés pendant sync.
+  - *3 bugs historiques* : garde DOM `applyDmg`, `logId` unique, fallback `niveau || 1`.
+- **Livré** : commit `489ca29` ; tests **74/74** (ajout `render.test.js`) · lint 0 err · build OK. R1 : CACHE `sw.js` v7→v8.
+- **Fix bonus (validation)** : `state.log` undefined → crash `applyDmg` (Firebase n'écrit pas les tableaux vides) → garde dans `setState`.
+- **Validation navigateur (Taihens)** : ✅ OK, 5 volets (`docs/verif_navigateur_lot02c.md`). Handoff `handoff04_lot02c.zip`.
+- **Remontées hors scope** → Gémi : undo permanent (Lot dédié), point de récup individuel (en attente).
 
 ### 📋 Lot 02d — Reste des tests unitaires [PLANIFIÉ]
 - **Tests dés** (formules de jets, historique)
 - **Tests state / storage** (sauvegarde, chargement, migrations et abstraction localStorage)
 
-### 📋 Lot 04 — Fonctionnalités [À DÉFINIR PAR GÉMI]
+### 📋 Lot 04 — Annulation permanente des actions [PLANIFIÉ]
+**Objectif** : Remplacer la barre d'annulation temporaire de 12 secondes par un bouton d'annulation physique permanent et robuste sur le tableau de bord MJ, et supporter l'annulation complète de la réinitialisation (`resetAll`).
+- **Fonctionnalités** :
+  - *Bouton physique* : Intégration d'un bouton d'annulation permanent dans la ligne d'actions MJ du Tableau de bord.
+  - *Snapshot d'état complet* : Remplacement du snapshot partiel par un snapshot d'état complet de l'application (personnages, logs, historiques) pour permettre l'annulation de toutes les actions, y compris `resetAll`.
+  - *Gestion de la visibilité* : Affichage dynamique du bouton uniquement si un snapshot d'annulation est disponible localement pour le MJ.
+
+### 📋 Lot 05 — Fonctionnalités [À DÉFINIR PAR GÉMI]
 - TBD selon besoins de la campagne
 
 ---
