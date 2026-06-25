@@ -5,7 +5,7 @@ import { pendingLvlUps } from '../levelup.js';
 
 export function render(){
   initHistory();
-  const present=state.chars.filter(c=>c.present&&!c.pending);
+  const present=state.chars.filter(c=>c.present&&!c.pending&&!c.hidden);
   const grid=document.getElementById('char-grid');
 
   // Lot 02c — rendu ciblé : si la liste ordonnée des IDs présents est identique

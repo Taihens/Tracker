@@ -101,7 +101,7 @@ export async function cancelCharSubmission(charId){
 // ── HIDDEN CHARS ──
 export function toggleHiddenChar(charId){
   const c=state.chars.find(x=>x.id===charId);if(!c)return;
-  c.hidden=!c.hidden;save();renderRoster();
+  c.hidden=!c.hidden;save();window.render();renderRoster();
   window.toast(`${c.name} — ${c.hidden?'masqué aux joueurs':'visible'}`,'t-i');
 }
 

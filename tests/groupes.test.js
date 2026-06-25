@@ -51,7 +51,7 @@ describe('applyGroupFilter', () => {
   ];
 
   it('sans filtre actif → retourne tous les chars', () => {
-    // _activeFilter est null au départ (module fraîchement importé)
+    // _activeFilters est un Set vide au départ (module fraîchement importé)
     const result = applyGroupFilter(chars);
     expect(result).toHaveLength(chars.length);
   });

@@ -83,7 +83,9 @@ PWA TTRPG (Chroniques Oubliées Fantasy) — suivi de combat MJ/Joueurs, dés, f
 
 ### ✅ Lot 07 — Importateurs & Fiches [CLOTURÉ]
 **Objectif** : Faciliter la saisie et le partage des personnages et monstres via les PDF et le format JSON.
-- **Livré** : Importateur Monstre/PNJ (texte+PDF → Gemini → JSON), Importateur Fiche PJ (AcroForm PDF.js + fallback Gemini), Import/Export JSON avec validation XSS et gestion des collisions d'ID, Groupes & Factions (PJ/PNJ alliés/Ennemis) avec filter bar roster et sélecteur dans l'éditeur, optimisations RAG (`text-embedding-004`, batching 100, .env). Cache v13, 178/178 tests unitaires verts. Handoff : `handoff/handoff07_importateurs-fiches.zip`.
+- **Livré** : Importateur Monstre/PNJ (texte+PDF → Gemini → JSON), Importateur Fiche PJ (AcroForm PDF.js + fallback Gemini, `maxOutputTokens` 8192), Import/Export JSON avec validation XSS et gestion des collisions d'ID, Groupes & Factions (PJ/PNJ alliés/Ennemis) avec filter bar multi-sélection et sélecteur dans l'éditeur, optimisations RAG (`text-embedding-004`, batching 100, .env). Cache v14, 178/178 tests unitaires verts.
+- **Correctifs post-livraison** : encodage W1252 `cof-classes.js` (2645 occurrences Ã*), boutons import visibles après reload (`restoreSession`), filtre groupes multi-sélection (Set), AcroForm incomplet → fallback Gemini (`pvMax>0 && niveau>0`), `toggleHiddenChar` → `window.render()`, perso caché absent du tableau de bord (`!c.hidden` dans le filtre `render()`).
+- **Handoff** : `handoff/handoff07_importateurs-fiches.zip` (v1) + `handoff/handoff07b_correctifs.zip` (v2 — correctifs session 2).
 
 ### 📋 Lot 08 — Messagerie, Dés & Archiving [PLANIFIÉ]
 **Objectif** : Améliorer les interactions en direct et pérenniser l'historique de jeu.

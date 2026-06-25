@@ -163,7 +163,9 @@ initHistory();
       document.getElementById('mode-badge').className='mode-badge mj';
       document.getElementById('mj-act-row').style.display='';
       document.getElementById('nav-settings').classList.remove('hidden');
-      document.getElementById('mode-overlay').classList.remove('show'); // fermer le popup
+      document.getElementById('mode-overlay').classList.remove('show');
+      const _bm=document.getElementById('btn-import-monster');if(_bm)_bm.style.display='';
+      const _bp=document.getElementById('btn-import-char-pdf');if(_bp)_bp.style.display='';
     } else if(savedMode==='joueur'&&savedChar){
       const charId=parseInt(savedChar);
       if(state.chars.find(x=>x.id===charId)){

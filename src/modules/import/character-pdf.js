@@ -108,7 +108,7 @@ async function callGemini(text) {
       model: 'gemini-2.5-flash',
       system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
       contents: [{ role: 'user', parts: [{ text }] }],
-      generationConfig: { maxOutputTokens: 4096, temperature: 0.1, thinkingConfig: { thinkingBudget: 0 } }, // R4
+      generationConfig: { maxOutputTokens: 8192, temperature: 0.1, thinkingConfig: { thinkingBudget: 0 } }, // R4 — 8192 nécessaire pour fiche COF complète avec voies
     }),
   });
   const data = await res.json();
@@ -154,9 +154,10 @@ export async function analyzeCharPdf(input) {
     // Tentative 1 : AcroForm
     const fields = await tryAcroForm(f);
     if (fields) {
-      if (statusEl) statusEl.textContent = 'Champs de formulaire détectés ✓';
+      if (statusEl) statusEl.textContent = `${Object.keys(fields).length} champs AcroForm détectés…`;
       const char = mapAcroFields(fields);
-      if (char.name) { renderPreview(char); return; }
+      if (char.name && char.pvMax > 0 && char.niveau > 0) { renderPreview(char); return; }
+      if (statusEl) statusEl.textContent = `AcroForm incomplet (pvMax=${char.pvMax}, niv=${char.niveau}) — fallback Gemini…`;
     }
     // Fallback : extraction texte + Gemini
     if (statusEl) statusEl.textContent = 'Extraction texte + analyse Gemini…';
