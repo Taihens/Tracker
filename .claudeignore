@@ -1,0 +1,19 @@
+# Fichiers ignorés par Claude Code (indexation / lecture)
+# But : réduire le bruit, éviter de lire des fichiers volumineux ou binaires
+
+node_modules/
+dist/
+coverage/
+.vercel/
+
+# Lockfile volumineux, faible valeur de lecture
+package-lock.json
+
+# Binaires
+*.png
+*.ico
+*.zip
+
+# Logs & exports
+*.log
+*.patch
